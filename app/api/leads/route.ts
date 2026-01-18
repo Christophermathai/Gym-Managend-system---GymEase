@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
+import { getDatabase, runAsync, allAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { verifyToken, extractToken } from '@/app/lib/auth';
 
@@ -11,11 +11,7 @@ function getAuthUserId(request: NextRequest): string | null {
   return decoded?.userId || null;
 }
 
-async function getUserRole(userId: string): Promise<string | null> {
-  const db = await getDatabase();
-  const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+// function getUserRole removed (unused)
 
 export async function GET(request: NextRequest) {
   try {

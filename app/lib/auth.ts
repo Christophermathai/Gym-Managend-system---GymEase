@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gym-ease-secret-key-change-in-production';
 const SALT_ROUNDS = 10;

@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
     // By default, only show active plans unless showAll is true
     if (!showAll) {
       query += ' WHERE is_active = ?';
-      params.push(true);
+      params.push(1);
     } else if (activeOnly === 'true') {
       query += ' WHERE is_active = ?';
-      params.push(true);
+      params.push(1);
     }
 
     query += ' ORDER BY created_at DESC';
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       db,
       `INSERT INTO fee_plans (id, name, description, duration, monthly_fee, admission_fee, registration_fee, security_deposit, is_active, created_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, true, userId]
+      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, 1, userId]
     );
 
     // Log action

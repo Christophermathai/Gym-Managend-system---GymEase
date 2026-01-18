@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     if (isActive !== null) {
       query += ' WHERE is_active = ?';
-      params.push(isActive === 'true');
+      params.push(isActive === 'true' ? 1 : 0);
     }
 
     if (search) {
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     let feePlan = null;
     if (finalFeePlanId) {
       // Verify fee plan exists and is active only if provided
-      feePlan = await getAsync(db, 'SELECT * FROM fee_plans WHERE id = ? AND is_active = ?', [finalFeePlanId, true]);
+      feePlan = await getAsync(db, 'SELECT * FROM fee_plans WHERE id = ? AND is_active = ?', [finalFeePlanId, 1]);
       if (!feePlan) {
         return NextResponse.json({ error: 'Invalid or inactive fee plan' }, { status: 400 });
       }
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       db,
       `INSERT INTO members (id, member_id, name, email, phone, secondary_phone, date_of_birth, gender, address, blood_group, medical_notes, admission_date, is_active, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [memberDocId, memberId, name, email || null, phone, finalSecondaryPhone || null, finalDateOfBirth || null, gender || null, address || null, finalBloodGroup || null, finalMedicalNotes || null, finalAdmissionDate, true, userId]
+      [memberDocId, memberId, name, email || null, phone, finalSecondaryPhone || null, finalDateOfBirth || null, gender || null, address || null, finalBloodGroup || null, finalMedicalNotes || null, finalAdmissionDate, 1, userId]
     );
 
     let subscriptionId = null;

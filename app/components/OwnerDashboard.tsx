@@ -18,6 +18,7 @@ interface Overview {
   netProfitYear: number;
   pendingPaymentsAmount: number;
   pendingPaymentsCount: number;
+  paidMembersCount: number;
   newAdmissionsMonth: number;
   expiringMemberships: number;
 }
@@ -93,7 +94,8 @@ export function OwnerDashboard({ onViewUnpaidMembers }: OwnerDashboardProps) {
   }
 
   const { overview, recentPayments, expiringMembers } = dashboardData;
-  const paidCount = Math.max(0, overview.totalActiveMembers - overview.pendingPaymentsCount);
+  const paidCount = overview.paidMembersCount || 0;
+  const unpaidCount = Math.max(0, overview.totalActiveMembers - paidCount);
 
   return (
     <motion.div
@@ -133,7 +135,7 @@ export function OwnerDashboard({ onViewUnpaidMembers }: OwnerDashboardProps) {
                 </button>
               )}
             </div>
-            <PaymentChart paidCount={paidCount} unpaidCount={overview.pendingPaymentsCount} />
+            <PaymentChart paidCount={paidCount} unpaidCount={unpaidCount} />
           </div>
         </div>
 

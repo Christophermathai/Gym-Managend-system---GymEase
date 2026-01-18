@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
-import { generateId } from '@/app/lib/utils';
+import { getDatabase, allAsync, getAsync } from '@/db';
 import { verifyToken, extractToken } from '@/app/lib/auth';
 
 function getAuthUserId(request: NextRequest): string | null {
@@ -39,7 +38,7 @@ export async function GET(request: NextRequest) {
     const activeMembers = await allAsync(
       db,
       'SELECT id FROM members WHERE is_active = ?',
-      [true]
+      [1]
     );
 
     // Pending payments (count only, no amounts for trainers)
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
     const newAdmissions = await allAsync(
       db,
       'SELECT id FROM members WHERE admission_date >= ? AND admission_date < ? AND is_active = ?',
-      [startOfMonth, startOfMonth + (30 * 24 * 60 * 60 * 1000), true]
+      [startOfMonth, startOfMonth + (30 * 24 * 60 * 60 * 1000), 1]
     );
 
     // Expiring memberships
@@ -78,7 +77,7 @@ export async function GET(request: NextRequest) {
        WHERE s.end_date >= ? AND s.end_date <= ? AND s.status = ? AND m.is_active = ?
        ORDER BY s.end_date ASC
        LIMIT 10`,
-      [now, sevenDaysFromNow, 'active', true]
+      [now, sevenDaysFromNow, 'active', 1]
     );
 
     // Leads assigned to this trainer
@@ -88,10 +87,21 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
+    // Paid members (members with at least one completed payment)
+    const paidMembers = await allAsync(
+      db,
+      `SELECT DISTINCT m.id
+       FROM members m
+       INNER JOIN payments p ON m.id = p.member_id
+       WHERE m.is_active = ? AND p.status = ?`,
+      [1, 'completed']
+    );
+
     return NextResponse.json({
       overview: {
         totalActiveMembers: activeMembers.length,
         pendingPaymentsCount: pendingPayments.length,
+        paidMembersCount: paidMembers.length,
         newAdmissionsMonth: newAdmissions.length,
         expiringMemberships: expiringSubscriptions.length,
       },

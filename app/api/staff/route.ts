@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { verifyToken, extractToken } from '@/app/lib/auth';
+import bcrypt from 'bcryptjs';
 
 function getAuthUserId(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization');
@@ -92,7 +93,6 @@ export async function POST(request: NextRequest) {
       }
 
       // Hash password
-      const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create user account
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       db,
       `INSERT INTO staff (id, name, role, email, phone, salary, joining_date, is_active, notes, created_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [staffId, name, role, email || null, phone, salary, finalJoiningDate, true, notes || null, userId]
+      [staffId, name, role, email || null, phone, salary, finalJoiningDate, 1, notes || null, userId]
     );
 
     // Log action

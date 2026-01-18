@@ -21,8 +21,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
   try {
+    const { id } = await params;
     const userId = getAuthUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -110,7 +110,7 @@ export async function DELETE(
     console.log('Deleting fee plan:', id, 'Current is_active:', plan.is_active);
 
     // Soft delete: Mark as inactive
-    const result = await runAsync(db, 'UPDATE fee_plans SET is_active = ? WHERE id = ?', [false, id]);
+    const result = await runAsync(db, 'UPDATE fee_plans SET is_active = ? WHERE id = ?', [0, id]);
 
     console.log('Delete result:', result);
 

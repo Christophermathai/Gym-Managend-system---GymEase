@@ -19,9 +19,10 @@ async function getUserRole(userId: string): Promise<string | null> {
 
 export async function PUT(
   request: NextRequest,
-  { params: { id } }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getAuthUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -74,9 +75,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params: { id } }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getAuthUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

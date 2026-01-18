@@ -1,29 +1,25 @@
 import js from "@eslint/js";
-import globals from "globals";
-import reactPlugin from "eslint-plugin-react";
+import { FlatCompat } from "@eslint/eslintrc";
+import tseslint from "typescript-eslint";
 
-export default [
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
+
+export default tseslint.config(
   {
-    ignores: ["node_modules", ".next"],
+    ignores: ["dist", ".next", "node_modules", "electron"],
   },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  ...compat.extends("next/core-web-vitals"),
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
-    languageOptions: {
-      ecmaVersion: 2020,
-      sourceType: "module",
-      globals: globals.browser,
-    },
-    plugins: {
-      react: reactPlugin,
-    },
     rules: {
-      ...js.configs.recommended.rules,
-      ...reactPlugin.configs.recommended.rules,
-    },
-    settings: {
-      react: {
-        version: "detect",
-      },
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react/no-unescaped-entities": "off",
+      "@typescript-eslint/ban-ts-comment": "off"
     },
   },
-];
+);

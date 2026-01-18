@@ -19,9 +19,10 @@ async function getUserRole(userId: string): Promise<string | null> {
 
 export async function PUT(
   request: NextRequest,
-  { params: { id } }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getAuthUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,7 +56,7 @@ export async function PUT(
     `;
 
     await runAsync(db, updateQuery, [
-      name, role, email, phone, salary, joiningDate, 
+      name, role, email, phone, salary, joiningDate,
       isActive !== undefined ? isActive : null, notes, id
     ]);
 
@@ -75,9 +76,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params: { id } }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = getAuthUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -95,7 +97,7 @@ export async function DELETE(
     }
 
     // Soft delete
-    await runAsync(db, 'UPDATE staff SET is_active = ? WHERE id = ?', [false, id]);
+    await runAsync(db, 'UPDATE staff SET is_active = ? WHERE id = ?', [0, id]);
 
     await runAsync(
       db,

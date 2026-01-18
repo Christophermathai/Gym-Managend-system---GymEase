@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, allAsync } from '@/db';
+import { getDatabase } from '@/db';
 import { verifyToken, extractToken } from '@/app/lib/auth';
 
 function getAuthUserId(request: NextRequest): string | null {

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const activeMembers = await allAsync(
       db,
       'SELECT id FROM members WHERE is_active = ?',
-      [true]
+      [1]
     );
 
     // Revenue calculations
@@ -116,7 +116,17 @@ export async function GET(request: NextRequest) {
        LEFT JOIN subscriptions s ON m.id = s.member_id
        WHERE s.end_date >= ? AND s.end_date <= ? AND s.status = ? AND m.is_active = ?
        ORDER BY s.end_date ASC`,
-      [now, sevenDaysFromNow, 'active', true]
+      [now, sevenDaysFromNow, 'active', 1]
+    );
+
+    // Paid members (members with at least one completed payment)
+    const paidMembers = await allAsync(
+      db,
+      `SELECT DISTINCT m.id
+       FROM members m
+       INNER JOIN payments p ON m.id = p.member_id
+       WHERE m.is_active = ? AND p.status = ?`,
+      [1, 'completed']
     );
 
     return NextResponse.json({
@@ -131,6 +141,7 @@ export async function GET(request: NextRequest) {
         netProfitYear: yearRevenue - yearExpenses,
         pendingPaymentsAmount,
         pendingPaymentsCount: pendingPayments.length,
+        paidMembersCount: paidMembers.length,
         newAdmissionsMonth: newAdmissionsMonth.length,
         expiringMemberships: expiringSubscriptions.length,
       },

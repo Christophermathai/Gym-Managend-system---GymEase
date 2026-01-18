@@ -13,6 +13,7 @@ interface DashboardData {
   overview: {
     totalActiveMembers: number;
     pendingPaymentsCount: number;
+    paidMembersCount: number;
     newAdmissionsMonth: number;
     expiringMemberships: number;
   };
@@ -201,7 +202,8 @@ export function TrainerDashboard() {
   }
 
   const { overview, pendingMembers, expiringMembers, recentLeads } = data;
-  const paidCount = Math.max(0, overview.totalActiveMembers - overview.pendingPaymentsCount);
+  const paidCount = overview.paidMembersCount || 0;
+  const unpaidCount = Math.max(0, overview.totalActiveMembers - paidCount);
 
   return (
     <motion.div
@@ -293,7 +295,7 @@ export function TrainerDashboard() {
                 View Unpaid Members
               </button>
             </div>
-            <PaymentChart paidCount={paidCount} unpaidCount={overview.pendingPaymentsCount} />
+            <PaymentChart paidCount={paidCount} unpaidCount={unpaidCount} />
           </motion.div>
 
           {/* Analytics Cards */}

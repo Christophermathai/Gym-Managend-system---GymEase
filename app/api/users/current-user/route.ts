@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, getAsync, runAsync, allAsync } from '@/db';
+import { getDatabase, getAsync, runAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { verifyToken, extractToken } from '@/app/lib/auth';
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       db,
       `INSERT INTO user_profiles (id, user_id, role, name, phone, is_active, created_at)
        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [profileId, userId, role, name, phone || null, true]
+      [profileId, userId, role, name, phone || null, 1]
     );
 
     // Log action

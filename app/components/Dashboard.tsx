@@ -15,6 +15,7 @@ import { AddMemberModal } from './AddMemberModal';
 import { RecordPaymentModal } from './RecordPaymentModal';
 import { AddLeadModal } from './AddLeadModal';
 import { AddUtilityModal } from './AddUtilityModal';
+import { Footer } from './Footer';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -220,6 +221,8 @@ export function Dashboard() {
           />
         </>
       )}
+
+      <Footer />
     </div>
   );
 }

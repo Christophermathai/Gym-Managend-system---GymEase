@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
+import { getDatabase, runAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { verifyToken, extractToken } from '@/app/lib/auth';
 

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 
@@ -44,8 +44,8 @@ const startNextServer = () => {
             let cmd, args;
 
             if (isDev) {
-                cmd = 'npm';
-                args = ['run', 'dev'];
+                cmd = 'node';
+                args = ['node_modules/next/dist/bin/next', 'dev'];
             } else {
                 // Production: run standalone server
                 // This expects the .next/standalone folder to be copied into resources
@@ -65,9 +65,10 @@ const startNextServer = () => {
             nextServerProcess = spawn(cmd, args, {
                 cwd: isDev ? process.cwd() : path.join(process.resourcesPath, 'standalone'),
                 env,
-                shell: true
+                shell: false,
+                detached: true
             });
-
+            nextServerProcess.unref();
             nextServerProcess.stdout.on('data', (data) => {
                 console.log(`Next.js: ${data}`);
                 if (data.toString().includes('Ready in') || data.toString().includes('started server on')) {
@@ -94,6 +95,25 @@ const startNextServer = () => {
         });
     });
 };
+
+function killNextServer() {
+    if (!nextServerProcess || nextServerProcess.killed) return;
+
+    console.log('Force killing Next.js server...');
+
+    if (process.platform === 'win32') {
+        // Kill entire process tree reliably
+        execSync(`taskkill /PID ${nextServerProcess.pid} /T /F`, { stdio: 'ignore' });
+    } else {
+        // Kill process group
+        try {
+            process.kill(-nextServerProcess.pid, 'SIGKILL');
+        } catch (e) { }
+    }
+
+    nextServerProcess = null;
+}
+
 
 function createWindow(port) {
     mainWindow = new BrowserWindow({
@@ -125,49 +145,80 @@ app.whenReady().then(async () => {
     });
 });
 
+// app.on('window-all-closed', () => {
+//     // Kill the server process immediately when window closes
+//     if (nextServerProcess) {
+//         console.log('Killing Next.js server process...');
+
+//         // On Windows, use taskkill for more reliable termination
+//         if (process.platform === 'win32') {
+//             exec(`taskkill /pid ${nextServerProcess.pid} /T /F`, (error) => {
+//                 if (error) {
+//                     console.error('Error killing process:', error);
+//                 } else {
+//                     console.log('Server process killed successfully');
+//                 }
+//             });
+//         } else {
+//             // Unix-like systems
+//             nextServerProcess.kill('SIGTERM');
+//             setTimeout(() => {
+//                 if (nextServerProcess && !nextServerProcess.killed) {
+//                     nextServerProcess.kill('SIGKILL');
+//                 }
+//             }, 2000);
+//         }
+
+//         nextServerProcess = null;
+//     }
+
+//     if (process.platform !== 'darwin') {
+//         app.quit();
+//     }
+// });
+
+// Additional cleanup on app quit
+// app.on('before-quit', () => {
+//     if (nextServerProcess) {
+//         console.log('App quitting - killing server...');
+
+//         if (process.platform === 'win32') {
+//             exec(`taskkill /pid ${nextServerProcess.pid} /T /F`);
+//         } else {
+//             nextServerProcess.kill('SIGKILL');
+//         }
+
+//         nextServerProcess = null;
+//     }
+// });
+
+
+/* ================== APP SHUTDOWN HANDLERS ================== */
+
+// Fired when all windows are closed
 app.on('window-all-closed', () => {
-    // Kill the server process immediately when window closes
-    if (nextServerProcess) {
-        console.log('Killing Next.js server process...');
-
-        // On Windows, use taskkill for more reliable termination
-        if (process.platform === 'win32') {
-            exec(`taskkill /pid ${nextServerProcess.pid} /T /F`, (error) => {
-                if (error) {
-                    console.error('Error killing process:', error);
-                } else {
-                    console.log('Server process killed successfully');
-                }
-            });
-        } else {
-            // Unix-like systems
-            nextServerProcess.kill('SIGTERM');
-            setTimeout(() => {
-                if (nextServerProcess && !nextServerProcess.killed) {
-                    nextServerProcess.kill('SIGKILL');
-                }
-            }, 2000);
-        }
-
-        nextServerProcess = null;
-    }
-
+    killNextServer();
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
-// Additional cleanup on app quit
+// Fired when app is quitting (Cmd+Q, Alt+F4, installer close, etc.)
 app.on('before-quit', () => {
-    if (nextServerProcess) {
-        console.log('App quitting - killing server...');
+    killNextServer();
+});
 
-        if (process.platform === 'win32') {
-            exec(`taskkill /pid ${nextServerProcess.pid} /T /F`);
-        } else {
-            nextServerProcess.kill('SIGKILL');
-        }
+// Fired when Node process exits
+process.on('exit', () => {
+    killNextServer();
+});
 
-        nextServerProcess = null;
-    }
+// Fired on Ctrl+C (dev mode)
+process.on('SIGINT', () => {
+    killNextServer();
+});
+
+// Fired on system kill / shutdown
+process.on('SIGTERM', () => {
+    killNextServer();
 });

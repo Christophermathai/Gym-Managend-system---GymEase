@@ -2,21 +2,35 @@ import { getDatabase, runAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { hashPassword } from '@/app/lib/auth';
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
+        const body = await request.json();
+        const { gymName, adminEmail, adminPassword, adminName, adminPhone } = body;
+
         const db = await getDatabase();
 
         // Check if any users exist
         const existingUsers = await db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
 
         if (existingUsers.count > 0) {
-            return Response.json({ message: 'Users already exist' }, { status: 200 });
+            return Response.json({ message: 'System already initialized' }, { status: 200 });
+        }
+
+        // Update gym settings
+        if (gymName) {
+            await runAsync(
+                db,
+                'UPDATE gym_settings SET gym_name = ? WHERE id = 1',
+                [gymName]
+            );
         }
 
         // Create default owner account
         const userId = generateId('user_');
-        const email = 'admin@gymease.com';
-        const password = 'admin123'; // Default password
+        const email = adminEmail || 'admin@gymease.com';
+        const password = adminPassword || 'admin123';
+        const name = adminName || 'Admin';
+        const phone = adminPhone || null;
         const hashedPassword = await hashPassword(password);
 
         await runAsync(
@@ -30,17 +44,18 @@ export async function POST() {
         await runAsync(
             db,
             'INSERT INTO user_profiles (id, user_id, role, name, phone, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
-            [profileId, userId, 'owner', 'Admin', null, 1]
+            [profileId, userId, 'owner', name, phone, 1]
         );
 
         return Response.json({
-            message: 'Default admin account created',
-            email,
-            password,
+            message: 'System initialized successfully',
+            gymName: gymName || 'Gym Ease',
+            adminEmail: email,
+            adminPassword: password,
             note: 'Please change the password after first login'
         }, { status: 201 });
     } catch (error) {
-        console.error('Error creating default user:', error);
-        return Response.json({ error: 'Failed to create default user' }, { status: 500 });
+        console.error('Error initializing system:', error);
+        return Response.json({ error: 'Failed to initialize system' }, { status: 500 });
     }
 }

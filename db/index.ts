@@ -218,6 +218,23 @@ function createTables(db: Database.Database) {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
     )
   `);
+
+  // Gym settings table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS gym_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      gym_name TEXT NOT NULL DEFAULT 'Gym Ease',
+      gym_address TEXT,
+      gym_phone TEXT,
+      gym_email TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Insert default settings if not exists
+  db.exec(`
+    INSERT OR IGNORE INTO gym_settings (id, gym_name) VALUES (1, 'Gym Ease')
+  `);
 }
 
 export async function getDatabase(): Promise<Database.Database> {

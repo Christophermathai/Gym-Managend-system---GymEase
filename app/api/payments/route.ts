@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
           await runAsync(
             db,
-            'UPDATE subscriptions SET end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            'UPDATE subscriptions SET end_date = ? WHERE id = ?',
             [newEndDate.getTime(), existingSubscription.id]
           );
 

@@ -7,15 +7,44 @@ import { Toaster } from 'sonner';
 import { Dashboard } from './Dashboard';
 import { ProfileSetup } from './ProfileSetup';
 import { ModalProvider } from './ModalContext';
+import { WelcomeSetup } from './WelcomeSetup';
+import { useState, useEffect } from 'react';
 
 export function App() {
   const { user, loading } = useAuth();
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
 
-  if (loading) {
+  useEffect(() => {
+    // Check if initial setup is needed
+    const checkSetup = async () => {
+      try {
+        const response = await fetch('/api/check-setup');
+        const data = await response.json();
+        setNeedsSetup(data.needsSetup);
+      } catch (error) {
+        console.error('Error checking setup:', error);
+        setNeedsSetup(false);
+      }
+    };
+
+    checkSetup();
+  }, []);
+
+  if (loading || needsSetup === null) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  // Show welcome setup if database is empty
+  if (needsSetup) {
+    return (
+      <>
+        <WelcomeSetup />
+        <Toaster position="top-right" />
+      </>
     );
   }
 

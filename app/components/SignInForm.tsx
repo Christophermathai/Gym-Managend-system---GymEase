@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 export function SignInForm() {
-  const { signIn, signUp } = useAuth();
-  const [flow, setFlow] = useState<'signIn' | 'signUp'>('signIn');
+  const { signIn } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,21 +17,14 @@ export function SignInForm() {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      if (flow === 'signIn') {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password);
-      }
+      await signIn(email, password);
     } catch (error) {
-      let toastTitle = '';
+      let toastTitle = 'Invalid email or password';
       if (error instanceof Error) {
         if (error.message.includes('Invalid password')) {
           toastTitle = 'Invalid password. Please try again.';
-        } else {
-          toastTitle =
-            flow === 'signIn'
-              ? 'Could not sign in, did you mean to sign up?'
-              : 'Could not sign up, did you mean to sign in?';
+        } else if (error.message.includes('User not found')) {
+          toastTitle = 'User not found. Please check your email.';
         }
       }
       toast.error(toastTitle);
@@ -59,19 +51,9 @@ export function SignInForm() {
           required
         />
         <button className="auth-button" type="submit" disabled={submitting}>
-          {flow === 'signIn' ? 'Sign in' : 'Sign up'}
+          Sign in
         </button>
       </form>
-      <div className="mt-4 text-center">
-        <button
-          onClick={() => setFlow(flow === 'signIn' ? 'signUp' : 'signIn')}
-          className="text-blue-600 hover:underline text-sm"
-        >
-          {flow === 'signIn'
-            ? "Don't have an account? Sign up"
-            : 'Already have an account? Sign in'}
-        </button>
-      </div>
     </div>
   );
 }

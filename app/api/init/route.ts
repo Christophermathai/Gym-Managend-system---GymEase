@@ -5,7 +5,7 @@ import { hashPassword } from '@/app/lib/auth';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { gymName, adminEmail, adminPassword, adminName, adminPhone } = body;
+        const { gymName, adminEmail, adminPassword, adminName, adminPhone, gymAddress, gymPhone, gymEmail } = body;
 
         const db = await getDatabase();
 
@@ -16,14 +16,12 @@ export async function POST(request: Request) {
             return Response.json({ message: 'System already initialized' }, { status: 200 });
         }
 
-        // Update gym settings
-        if (gymName) {
-            await runAsync(
-                db,
-                'UPDATE gym_settings SET gym_name = ? WHERE id = 1',
-                [gymName]
-            );
-        }
+        // Update gym settings with all provided details
+        await runAsync(
+            db,
+            'UPDATE gym_settings SET gym_name = ?, gym_address = ?, gym_phone = ?, gym_email = ? WHERE id = 1',
+            [gymName || 'Gym Ease', gymAddress || null, gymPhone || null, gymEmail || null]
+        );
 
         // Create default owner account
         const userId = generateId('user_');

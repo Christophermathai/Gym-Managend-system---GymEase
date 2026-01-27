@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get list of backup files from Documents/GymEase_Backups
-        const fs = require('fs');
-        const path = require('path');
-        const os = require('os');
+        // Dynamic imports to avoid build-time execution
+        const fs = await import('fs');
+        const path = await import('path');
+        const os = await import('os');
 
         const documentsPath = path.join(os.homedir(), 'Documents');
         const backupDir = path.join(documentsPath, 'GymEase_Backups');
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify user role is owner
-        const { getDatabase, getAsync } = require('@/db');
+        const { getDatabase, getAsync } = await import('@/db');
         const db = await getDatabase();
         const user = await getAsync(
             db,
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Only owners can restore database' }, { status: 403 });
         }
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = await import('fs');
+        const path = await import('path');
 
         // Verify backup file exists
         if (!fs.existsSync(backupPath)) {

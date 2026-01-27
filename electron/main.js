@@ -6,6 +6,7 @@ const http = require('http');
 
 let mainWindow;
 let nextServerProcess;
+let isShuttingDown = false; // Flag to track intentional shutdown
 
 // Store DB in AppData so it persists after updates/reinstalls
 const userDataPath = app.getPath('userData');
@@ -138,7 +139,8 @@ const startNextServer = () => {
             });
 
             nextServerProcess.on('close', (code) => {
-                if (code !== 0 && code !== null) {
+                // Only show error if not intentionally shutting down
+                if (!isShuttingDown && code !== 0 && code !== null) {
                     dialog.showErrorBox('Server Crashed', `Next.js process exited with code ${code}.\nPlease check the 'Backend Error' dialog for details.`);
                 }
             });
@@ -251,6 +253,7 @@ app.whenReady().then(async () => {
 
 // Fired when all windows are closed
 app.on('window-all-closed', () => {
+    isShuttingDown = true; // Mark as intentional shutdown
     killNextServer();
     if (process.platform !== 'darwin') {
         app.quit();

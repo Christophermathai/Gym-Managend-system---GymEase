@@ -21,6 +21,59 @@ function ensureDatabase() {
     console.log('Database Path:', dbPath);
 }
 
+// Backup interval reference
+let backupInterval = null;
+
+// Backup database to Documents folder
+function backupDatabase() {
+    try {
+        if (!fs.existsSync(dbPath)) return;
+
+        const documentsPath = app.getPath('documents');
+        const backupDir = path.join(documentsPath, 'GymEase_Backups');
+        fs.mkdirSync(backupDir, { recursive: true });
+
+        const backupPath = path.join(
+            backupDir,
+            `gym_ease_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.db`
+        );
+
+        try {
+            const fd = fs.openSync(dbPath, 'r');
+            fs.closeSync(fd);
+
+            fs.copyFileSync(dbPath, backupPath);
+            console.log('Database backed up:', backupPath);
+        } catch {
+            console.log('Database busy, skipping this backup cycle');
+        }
+    } catch (err) {
+        console.error('Backup failed:', err);
+    }
+}
+
+// Start automatic backup every 30 minutes
+function startAutoBackup() {
+    // Initial backup
+    backupDatabase();
+
+    // Set interval for 30 minutes (30 * 60 * 1000 ms)
+    backupInterval = setInterval(() => {
+        backupDatabase();
+    }, 30 * 60 * 1000);
+
+    console.log('Automatic backup started (every 30 minutes)');
+}
+
+// Stop automatic backup
+function stopAutoBackup() {
+    if (backupInterval) {
+        clearInterval(backupInterval);
+        backupInterval = null;
+        console.log('Automatic backup stopped');
+    }
+}
+
 const startNextServer = () => {
     return new Promise((resolve, reject) => {
         // We launch next dev for simple wrapper or node server.js for prod
@@ -135,6 +188,7 @@ function createWindow(port) {
 
 app.whenReady().then(async () => {
     ensureDatabase();
+    startAutoBackup(); // Start automatic backup
     const port = await startNextServer();
     createWindow(port);
 
@@ -205,6 +259,7 @@ app.on('window-all-closed', () => {
 
 // Fired when app is quitting (Cmd+Q, Alt+F4, installer close, etc.)
 app.on('before-quit', () => {
+    stopAutoBackup();
     killNextServer();
 });
 

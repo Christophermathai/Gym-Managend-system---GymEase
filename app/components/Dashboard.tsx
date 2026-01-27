@@ -16,6 +16,7 @@ import { RecordPaymentModal } from './RecordPaymentModal';
 import { AddLeadModal } from './AddLeadModal';
 import { AddUtilityModal } from './AddUtilityModal';
 import { Footer } from './Footer';
+import { BulkMemberImport } from './BulkMemberImport';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -104,6 +105,11 @@ export function Dashboard() {
                 onClick={() => handleTabChange('staff')}
               />
               <TabButton
+                label="Import"
+                active={activeTab === 'import'}
+                onClick={() => handleTabChange('import')}
+              />
+              <TabButton
                 label="Payments"
                 active={activeTab === 'payments'}
                 onClick={() => handleTabChange('payments')}
@@ -149,6 +155,10 @@ export function Dashboard() {
 
             <div className={activeTab === 'staff' ? 'block' : 'hidden'}>
               {(activeTab === 'staff' || visitedTabs.has('staff')) && <StaffManagement />}
+            </div>
+
+            <div className={activeTab === 'import' ? 'block' : 'hidden'}>
+              {(activeTab === 'import' || visitedTabs.has('import')) && <BulkMemberImport />}
             </div>
 
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}>

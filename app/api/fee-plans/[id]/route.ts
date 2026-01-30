@@ -45,7 +45,8 @@ export async function PUT(
       registrationFee,
       registration_fee,
       securityDeposit,
-      security_deposit
+      security_deposit,
+      is_personal_training
     } = body;
 
     const finalMonthlyFee = monthlyFee ?? monthly_fee;
@@ -66,9 +67,9 @@ export async function PUT(
     await runAsync(
       db,
       `UPDATE fee_plans SET name = ?, description = ?, duration = ?, monthly_fee = ?, 
-       admission_fee = ?, registration_fee = ?, security_deposit = ?
+       admission_fee = ?, registration_fee = ?, security_deposit = ?, is_personal_training = ?
        WHERE id = ?`,
-      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, id]
+      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, is_personal_training ? 1 : 0, id]
     );
 
     await runAsync(

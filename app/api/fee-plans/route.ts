@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       registration_fee,
       securityDeposit,
       security_deposit,
+      is_personal_training,
     } = body;
 
     const finalMonthlyFee = monthlyFee || monthly_fee;
@@ -110,9 +111,9 @@ export async function POST(request: NextRequest) {
 
     await runAsync(
       db,
-      `INSERT INTO fee_plans (id, name, description, duration, monthly_fee, admission_fee, registration_fee, security_deposit, is_active, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, 1, userId]
+      `INSERT INTO fee_plans (id, name, description, duration, monthly_fee, admission_fee, registration_fee, security_deposit, is_personal_training, is_active, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, is_personal_training ? 1 : 0, 1, userId]
     );
 
     // Log action

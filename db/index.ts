@@ -62,6 +62,7 @@ function createTables(db: Database.Database) {
       admission_fee REAL,
       registration_fee REAL,
       security_deposit REAL,
+      is_personal_training BOOLEAN DEFAULT FALSE,
       is_active BOOLEAN DEFAULT TRUE,
       created_by TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -235,6 +236,20 @@ function createTables(db: Database.Database) {
   db.exec(`
     INSERT OR IGNORE INTO gym_settings (id, gym_name) VALUES (1, 'Gym Ease')
   `);
+
+  // Migration: Add is_personal_training column to fee_plans if it doesn't exist
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(fee_plans)").all() as Array<{ name: string }>;
+    const hasColumn = tableInfo.some(col => col.name === 'is_personal_training');
+
+    if (!hasColumn) {
+      console.log('Adding is_personal_training column to fee_plans table...');
+      db.exec(`ALTER TABLE fee_plans ADD COLUMN is_personal_training BOOLEAN DEFAULT FALSE`);
+      console.log('Migration completed: is_personal_training column added');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
 }
 
 export async function getDatabase(): Promise<Database.Database> {

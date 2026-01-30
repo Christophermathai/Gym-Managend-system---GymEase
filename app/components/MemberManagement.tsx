@@ -32,7 +32,8 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
 
   // Filter states
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>(initialFilter === 'unpaid' ? 'unpaid' : 'all');
-  const [ageFilter, setAgeFilter] = useState<'all' | '18-25' | '26-35' | '36-45' | '46+'>('all');
+  const [durationFilter, setDurationFilter] = useState<'all' | '1' | '3' | '6' | '12'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'personal' | 'normal'>('all');
 
   useEffect(() => {
     if (initialFilter) {
@@ -177,12 +178,6 @@ ${gymName} Team`;
 
   if (loading) return <div className="p-4">Loading members...</div>;
 
-  // Calculate age from admission date (approximate)
-  const calculateAge = (admissionDate: number) => {
-    const years = Math.floor((Date.now() - admissionDate) / (365.25 * 24 * 60 * 60 * 1000));
-    return Math.max(18, Math.min(65, 25 + years)); // Approximate age based on admission
-  };
-
   // Check if member has paid fees
   const hasPaidFees = (member: Member) => {
     // Check if member has any payments recorded
@@ -202,13 +197,18 @@ ${gymName} Team`;
     if (paymentFilter === 'paid' && !hasPaidFees(member)) return false;
     if (paymentFilter === 'unpaid' && hasPaidFees(member)) return false;
 
-    // Age filter (approximate)
-    if (ageFilter !== 'all') {
-      const age = calculateAge(member.subscriptions?.[0]?.created_at || Date.now());
-      if (ageFilter === '18-25' && (age < 18 || age > 25)) return false;
-      if (ageFilter === '26-35' && (age < 26 || age > 35)) return false;
-      if (ageFilter === '36-45' && (age < 36 || age > 45)) return false;
-      if (ageFilter === '46+' && age < 46) return false;
+    // Duration filter (based on active subscription's fee plan)
+    if (durationFilter !== 'all') {
+      const activeSubscription = member.subscriptions?.find((sub: any) => sub.status === 'active');
+      if (!activeSubscription || activeSubscription.duration.toString() !== durationFilter) return false;
+    }
+
+    // Type filter (personal training vs normal)
+    if (typeFilter !== 'all') {
+      const activeSubscription = member.subscriptions?.find((sub: any) => sub.status === 'active');
+      const isPersonalTraining = activeSubscription?.is_personal_training || false;
+      if (typeFilter === 'personal' && !isPersonalTraining) return false;
+      if (typeFilter === 'normal' && isPersonalTraining) return false;
     }
 
     return true;
@@ -264,19 +264,33 @@ ${gymName} Team`;
               </select>
             </div>
 
-            {/* Age Filter */}
+            {/* Membership Duration Filter */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Age Range</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Membership Duration</label>
               <select
-                value={ageFilter}
-                onChange={(e) => setAgeFilter(e.target.value as any)}
+                value={durationFilter}
+                onChange={(e) => setDurationFilter(e.target.value as any)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">All Ages</option>
-                <option value="18-25">18-25 years</option>
-                <option value="26-35">26-35 years</option>
-                <option value="36-45">36-45 years</option>
-                <option value="46+">46+ years</option>
+                <option value="all">All Durations</option>
+                <option value="1">1 Month</option>
+                <option value="3">3 Months</option>
+                <option value="6">6 Months</option>
+                <option value="12">12 Months</option>
+              </select>
+            </div>
+
+            {/* Membership Type Filter */}
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Membership Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as any)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Types</option>
+                <option value="normal">Normal Membership</option>
+                <option value="personal">Personal Training</option>
               </select>
             </div>
 
@@ -285,7 +299,8 @@ ${gymName} Team`;
               <button
                 onClick={() => {
                   setPaymentFilter('all');
-                  setAgeFilter('all');
+                  setDurationFilter('all');
+                  setTypeFilter('all');
                   setSearchTerm('');
                 }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"

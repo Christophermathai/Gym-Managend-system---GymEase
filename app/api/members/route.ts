@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       members.map(async (member: any) => {
         const subscription = await getAsync(
           db,
-          `SELECT s.*, f.name as plan_name, f.duration, f.monthly_fee
+          `SELECT s.*, f.name as plan_name, f.duration, f.monthly_fee, f.is_personal_training
            FROM subscriptions s
            LEFT JOIN fee_plans f ON s.fee_plan_id = f.id
            WHERE s.member_id = ? 

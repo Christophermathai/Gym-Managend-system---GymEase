@@ -51,7 +51,14 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
-        <h2 className="text-xl font-semibold text-blue-600">Gym Ease</h2>
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.ico"
+            alt="Gym Ease Logo"
+            className="w-8 h-8"
+          />
+          <h2 className="text-xl font-semibold text-blue-600">Gym Ease</h2>
+        </div>
         {user && <SignOutButton />}
       </header>
       <main className="flex-1">

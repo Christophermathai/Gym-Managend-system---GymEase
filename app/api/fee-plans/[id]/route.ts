@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, runAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-async function getUserRole(userId: string): Promise<string | null> {
-  const db = await getDatabase();
-  const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
 export async function PUT(
   request: NextRequest,
@@ -46,7 +32,8 @@ export async function PUT(
       registration_fee,
       securityDeposit,
       security_deposit,
-      is_personal_training
+      is_personal_training,
+      is_couple_package
     } = body;
 
     const finalMonthlyFee = monthlyFee ?? monthly_fee;
@@ -67,9 +54,9 @@ export async function PUT(
     await runAsync(
       db,
       `UPDATE fee_plans SET name = ?, description = ?, duration = ?, monthly_fee = ?, 
-       admission_fee = ?, registration_fee = ?, security_deposit = ?, is_personal_training = ?
+       admission_fee = ?, registration_fee = ?, security_deposit = ?, is_personal_training = ?, is_couple_package = ?
        WHERE id = ?`,
-      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, is_personal_training ? 1 : 0, id]
+      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, is_personal_training ? 1 : 0, is_couple_package ? 1 : 0, id]
     );
 
     await runAsync(

@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
+import { getDatabase, runAsync, allAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-async function getUserRole(userId: string): Promise<string | null> {
-  const db = await getDatabase();
-  const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -82,6 +68,7 @@ export async function POST(request: NextRequest) {
       securityDeposit,
       security_deposit,
       is_personal_training,
+      is_couple_package,
     } = body;
 
     const finalMonthlyFee = monthlyFee || monthly_fee;
@@ -111,9 +98,9 @@ export async function POST(request: NextRequest) {
 
     await runAsync(
       db,
-      `INSERT INTO fee_plans (id, name, description, duration, monthly_fee, admission_fee, registration_fee, security_deposit, is_personal_training, is_active, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, is_personal_training ? 1 : 0, 1, userId]
+      `INSERT INTO fee_plans (id, name, description, duration, monthly_fee, admission_fee, registration_fee, security_deposit, is_personal_training, is_couple_package, is_active, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [feePlanId, name, description || null, duration, finalMonthlyFee, finalAdmissionFee || null, finalRegistrationFee || null, finalSecurityDeposit || null, is_personal_training ? 1 : 0, is_couple_package ? 1 : 0, 1, userId]
     );
 
     // Log action

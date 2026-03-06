@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, allAsync, getAsync } from '@/db';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-async function getUserRole(userId: string): Promise<string | null> {
-  const db = await getDatabase();
-  const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,11 +83,22 @@ export async function GET(request: NextRequest) {
       [1, 'completed']
     );
 
+    // Partial members (members with at least one partial payment)
+    const partialMembers = await allAsync(
+      db,
+      `SELECT DISTINCT m.id
+       FROM members m
+       INNER JOIN payments p ON m.id = p.member_id
+       WHERE m.is_active = ? AND p.status = ?`,
+      [1, 'partial']
+    );
+
     return NextResponse.json({
       overview: {
         totalActiveMembers: activeMembers.length,
         pendingPaymentsCount: pendingPayments.length,
         paidMembersCount: paidMembers.length,
+        partialMembersCount: partialMembers.length,
         newAdmissionsMonth: newAdmissions.length,
         expiringMemberships: expiringSubscriptions.length,
       },

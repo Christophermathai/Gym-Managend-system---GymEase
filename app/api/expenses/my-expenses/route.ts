@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, allAsync } from '@/db';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-    const authHeader = request.headers.get('authorization');
-    const token = extractToken(authHeader);
-    if (!token) return null;
-    const decoded = verifyToken(token);
-    return decoded?.userId || null;
-}
+import { getAuthUserId } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
     try {

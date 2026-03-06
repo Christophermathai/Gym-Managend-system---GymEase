@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, runAsync, allAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-// function getUserRole removed (unused)
+import { getAuthUserId } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {

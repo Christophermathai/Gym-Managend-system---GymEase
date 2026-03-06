@@ -19,6 +19,7 @@ interface Overview {
   pendingPaymentsAmount: number;
   pendingPaymentsCount: number;
   paidMembersCount: number;
+  partialMembersCount: number;
   newAdmissionsMonth: number;
   expiringMemberships: number;
 }
@@ -31,9 +32,10 @@ interface DashboardData {
 
 interface OwnerDashboardProps {
   onViewUnpaidMembers?: () => void;
+  onViewPartialMembers?: () => void;
 }
 
-export function OwnerDashboard({ onViewUnpaidMembers }: OwnerDashboardProps) {
+export function OwnerDashboard({ onViewUnpaidMembers, onViewPartialMembers }: OwnerDashboardProps) {
   const { token } = useAuth();
   const { setShowAddMemberModal, setShowPaymentModal } = useModals();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -95,7 +97,8 @@ export function OwnerDashboard({ onViewUnpaidMembers }: OwnerDashboardProps) {
 
   const { overview, recentPayments, expiringMembers } = dashboardData;
   const paidCount = overview.paidMembersCount || 0;
-  const unpaidCount = Math.max(0, overview.totalActiveMembers - paidCount);
+  const partialCount = overview.partialMembersCount || 0;
+  const unpaidCount = Math.max(0, overview.totalActiveMembers - paidCount - partialCount);
 
   return (
     <motion.div
@@ -126,16 +129,26 @@ export function OwnerDashboard({ onViewUnpaidMembers }: OwnerDashboardProps) {
           <div className="bg-white rounded-lg shadow p-6 mb-6 h-full transition-shadow hover:shadow-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Payment Status Overview</h3>
-              {onViewUnpaidMembers && (
-                <button
-                  onClick={onViewUnpaidMembers}
-                  className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-medium text-sm transition-colors"
-                >
-                  View Unpaid Members
-                </button>
-              )}
+              <div className="flex gap-2">
+                {onViewPartialMembers && (
+                  <button
+                    onClick={onViewPartialMembers}
+                    className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-medium text-sm transition-colors"
+                  >
+                    View Outstanding Balances
+                  </button>
+                )}
+                {onViewUnpaidMembers && (
+                  <button
+                    onClick={onViewUnpaidMembers}
+                    className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-medium text-sm transition-colors"
+                  >
+                    View Unpaid Members
+                  </button>
+                )}
+              </div>
             </div>
-            <PaymentChart paidCount={paidCount} unpaidCount={unpaidCount} />
+            <PaymentChart paidCount={paidCount} unpaidCount={unpaidCount} partialCount={partialCount} />
           </div>
         </div>
 

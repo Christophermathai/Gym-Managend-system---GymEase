@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Sign up failed');
     }
 
-    localStorage.setItem('authToken', newToken);
     const { token: newToken } = await response.json();
+    localStorage.setItem('authToken', newToken);
     setToken(newToken);
   };
 

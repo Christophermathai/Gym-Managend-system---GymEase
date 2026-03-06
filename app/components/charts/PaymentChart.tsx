@@ -6,17 +6,23 @@ import { motion } from 'framer-motion';
 interface PaymentChartProps {
     paidCount: number;
     unpaidCount: number;
+    partialCount?: number;
 }
 
-export function PaymentChart({ paidCount, unpaidCount }: PaymentChartProps) {
+export function PaymentChart({ paidCount, unpaidCount, partialCount = 0 }: PaymentChartProps) {
     const data = [
         { name: 'Paid Fees', value: paidCount, color: '#10b981' },
         { name: 'Unpaid Fees', value: unpaidCount, color: '#ef4444' },
     ];
 
-    const total = paidCount + unpaidCount;
+    if (partialCount > 0) {
+        data.push({ name: 'Partial Payment', value: partialCount, color: '#f59e0b' });
+    }
+
+    const total = paidCount + unpaidCount + partialCount;
     const paidPercentage = total > 0 ? ((paidCount / total) * 100).toFixed(1) : 0;
     const unpaidPercentage = total > 0 ? ((unpaidCount / total) * 100).toFixed(1) : 0;
+    const partialPercentage = total > 0 ? ((partialCount / total) * 100).toFixed(1) : 0;
 
     return (
         <motion.div
@@ -68,6 +74,16 @@ export function PaymentChart({ paidCount, unpaidCount }: PaymentChartProps) {
                         </div>
                         <p className="text-red-200 text-sm mt-1">{unpaidCount} members</p>
                     </div>
+
+                    {partialCount > 0 && (
+                        <div className="bg-amber-500/20 backdrop-blur-sm rounded-xl p-4 border border-amber-500/30">
+                            <div className="flex items-center justify-between">
+                                <span className="text-amber-100 font-medium">Outstanding Bal.</span>
+                                <span className="text-2xl font-bold text-amber-400">{partialPercentage}%</span>
+                            </div>
+                            <p className="text-amber-200 text-sm mt-1">{partialCount} members</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </motion.div>

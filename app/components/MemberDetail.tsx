@@ -72,12 +72,12 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
       } else {
         toast.error('Failed to load member details');
       }
-      
+
       // Fetch payments
       const paymentsResponse = await fetch(`/api/payments?memberId=${memberId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (paymentsResponse.ok) {
         const paymentsData = await paymentsResponse.json();
         setPayments(Array.isArray(paymentsData) ? paymentsData : []);
@@ -141,7 +141,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-sm font-medium text-gray-600">Name</p>
-              <p className="text-2xl font-bold text-gray-900">{member.name}</p>
+              <p className="text-2xl font-bold text-gray-900 first-letter:uppercase lowercase">{member.name}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Phone</p>
@@ -195,15 +195,14 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Duration</p>
-                <p className="text-lg text-gray-900">{subscription.duration} days</p>
+                <p className="text-lg text-gray-900">{subscription.duration} Months</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className={`text-lg font-semibold capitalize ${
-                  subscription.status === 'active' ? 'text-green-600' :
+                <p className={`text-lg font-semibold capitalize ${subscription.status === 'active' ? 'text-green-600' :
                   subscription.status === 'expiring_soon' ? 'text-yellow-600' :
-                  'text-red-600'
-                }`}>
+                    'text-red-600'
+                  }`}>
                   {subscription.status}
                 </p>
               </div>
@@ -223,11 +222,10 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
             {daysRemaining !== null && (
               <div className="mt-6 p-4 rounded-lg bg-white">
                 <p className="text-sm font-medium text-gray-600">Days Remaining</p>
-                <p className={`text-3xl font-bold ${
-                  daysRemaining > 30 ? 'text-green-600' :
+                <p className={`text-3xl font-bold ${daysRemaining > 30 ? 'text-green-600' :
                   daysRemaining > 0 ? 'text-yellow-600' :
-                  'text-red-600'
-                }`}>
+                    'text-red-600'
+                  }`}>
                   {daysRemaining > 0 ? daysRemaining : 'Expired'}
                 </p>
               </div>
@@ -242,7 +240,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
         {/* Payments Section */}
         <div className="mt-6 bg-green-50 rounded-lg p-6 border-l-4 border-green-500">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Payment History</h3>
-          
+
           {payments && payments.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -277,7 +275,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
                   ))}
                 </tbody>
               </table>
-              
+
               {/* Payment Summary */}
               <div className="mt-4 pt-4 border-t-2 border-green-300">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

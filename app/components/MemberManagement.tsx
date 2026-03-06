@@ -20,7 +20,7 @@ interface Member {
   payments?: any[];
 }
 
-export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' | null } = {}) {
+export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' | 'partial' | null } = {}) {
   const { token } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,26 +30,35 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
   const [formData, setFormData] = useState<Partial<Member>>({});
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
-  // Filter states
+  // Filter & sort states
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>(initialFilter === 'unpaid' ? 'unpaid' : 'all');
   const [durationFilter, setDurationFilter] = useState<'all' | '1' | '3' | '6' | '12'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'personal' | 'normal'>('all');
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'has_balance' | 'no_balance'>(initialFilter === 'partial' ? 'has_balance' : 'all');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'date_newest' | 'date_oldest' | 'status'>('name_asc');
 
   useEffect(() => {
-    if (initialFilter) {
-      setPaymentFilter(initialFilter);
+    if (initialFilter === 'unpaid') {
+      setPaymentFilter('unpaid');
+      setBalanceFilter('all');
+    } else if (initialFilter === 'partial') {
+      setPaymentFilter('all');
+      setBalanceFilter('has_balance');
+    } else if (!initialFilter) {
+      setPaymentFilter('all');
+      setBalanceFilter('all');
     }
   }, [initialFilter]);
 
-  // Fetch members
   useEffect(() => {
     fetchMembers();
-  }, [searchTerm]); // Refetch when search term changes
+  }, [token]);
 
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/members?search=${searchTerm}`, {
+      if (!token) return;
+      const response = await fetch(`/api/members?limit=2000`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
@@ -179,39 +188,47 @@ ${gymName} Team`;
   if (loading) return <div className="p-4">Loading members...</div>;
 
   // Check if member has paid fees
-  const hasPaidFees = (member: Member) => {
-    // Check if member has any payments recorded
-    return member.payments && member.payments.length > 0;
-  };
+  const hasPaidFees = (member: Member) => member.payments && member.payments.length > 0;
+
+  // Check if member has an outstanding balance
+  const hasOutstandingBalance = (member: Member) =>
+    member.payments?.some((p: any) => (p.balance ?? 0) > 0) || false;
 
   // Filter members
-  const filteredMembers = members.filter(member => {
-    // Search filter
+  const filtered = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone.includes(searchTerm) ||
       (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()));
-
     if (!matchesSearch) return false;
 
-    // Payment filter
     if (paymentFilter === 'paid' && !hasPaidFees(member)) return false;
     if (paymentFilter === 'unpaid' && hasPaidFees(member)) return false;
 
-    // Duration filter (based on active subscription's fee plan)
     if (durationFilter !== 'all') {
-      const activeSubscription = member.subscriptions?.find((sub: any) => sub.status === 'active');
-      if (!activeSubscription || activeSubscription.duration.toString() !== durationFilter) return false;
+      const activeSub = member.subscriptions?.find((s: any) => s.status === 'active');
+      if (!activeSub || activeSub.duration.toString() !== durationFilter) return false;
     }
 
-    // Type filter (personal training vs normal)
     if (typeFilter !== 'all') {
-      const activeSubscription = member.subscriptions?.find((sub: any) => sub.status === 'active');
-      const isPersonalTraining = activeSubscription?.is_personal_training || false;
-      if (typeFilter === 'personal' && !isPersonalTraining) return false;
-      if (typeFilter === 'normal' && isPersonalTraining) return false;
+      const activeSub = member.subscriptions?.find((s: any) => s.status === 'active');
+      const isPersonal = activeSub?.is_personal_training || false;
+      if (typeFilter === 'personal' && !isPersonal) return false;
+      if (typeFilter === 'normal' && isPersonal) return false;
     }
+
+    if (balanceFilter === 'has_balance' && !hasOutstandingBalance(member)) return false;
+    if (balanceFilter === 'no_balance' && hasOutstandingBalance(member)) return false;
 
     return true;
+  });
+
+  // Sort members
+  const filteredMembers = [...filtered].sort((a, b) => {
+    if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
+    if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
+    if (sortBy === 'status') return (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0);
+    // date_newest / date_oldest — members don't have admission_date in state, fall back to array order
+    return 0;
   });
 
   return (
@@ -248,31 +265,45 @@ ${gymName} Team`;
             />
           </div>
 
-          {/* Filter Controls */}
-          <div className="flex gap-4 flex-wrap">
+          {/* Filter & Sort Controls */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {/* Payment Status Filter */}
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
               <select
                 value={paymentFilter}
                 onChange={(e) => setPaymentFilter(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Members</option>
-                <option value="paid">Paid Fees</option>
-                <option value="unpaid">Unpaid Fees</option>
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
               </select>
             </div>
 
-            {/* Membership Duration Filter */}
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Membership Duration</label>
+            {/* Balance Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Balance</label>
+              <select
+                value={balanceFilter}
+                onChange={(e) => setBalanceFilter(e.target.value as any)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                <option value="has_balance">Outstanding Balance</option>
+                <option value="no_balance">No Balance</option>
+              </select>
+            </div>
+
+            {/* Duration Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
               <select
                 value={durationFilter}
                 onChange={(e) => setDurationFilter(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">All Durations</option>
+                <option value="all">All</option>
                 <option value="1">1 Month</option>
                 <option value="3">3 Months</option>
                 <option value="6">6 Months</option>
@@ -280,32 +311,35 @@ ${gymName} Team`;
               </select>
             </div>
 
-            {/* Membership Type Filter */}
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Membership Type</label>
+            {/* Sort By */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Sort By</label>
               <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">All Types</option>
-                <option value="normal">Normal Membership</option>
-                <option value="personal">Personal Training</option>
+                <option value="date_newest">Default</option>
+                <option value="name_asc">Name A → Z</option>
+                <option value="name_desc">Name Z → A</option>
+                <option value="status">Status (Active first)</option>
               </select>
             </div>
 
-            {/* Clear Filters Button */}
+            {/* Clear Filters */}
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setPaymentFilter('all');
                   setDurationFilter('all');
                   setTypeFilter('all');
+                  setBalanceFilter('all');
+                  setSortBy('date_newest');
                   setSearchTerm('');
                 }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Clear Filters
+                Clear
               </button>
             </div>
           </div>
@@ -341,7 +375,7 @@ ${gymName} Team`;
                     <td className="p-2">
                       <button
                         onClick={() => setSelectedMemberId(member.id)}
-                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-semibold first-letter:uppercase lowercase"
                       >
                         {member.name}
                       </button>
@@ -356,6 +390,11 @@ ${gymName} Team`;
                       {!hasPaidFees(member) && (
                         <span className="ml-2 px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
                           Unpaid
+                        </span>
+                      )}
+                      {hasOutstandingBalance(member) && (
+                        <span className="ml-2 px-2 py-1 rounded text-xs font-semibold bg-orange-100 text-orange-800">
+                          Balance Due
                         </span>
                       )}
                     </td>

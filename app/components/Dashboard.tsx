@@ -17,6 +17,7 @@ import { AddLeadModal } from './AddLeadModal';
 import { AddUtilityModal } from './AddUtilityModal';
 import { Footer } from './Footer';
 import { BulkMemberImport } from './BulkMemberImport';
+import { Reports } from './Reports';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -27,12 +28,18 @@ export function Dashboard() {
     showAddUtilityModal, setShowAddUtilityModal,
   } = useModals();
   const [activeTab, setActiveTab] = useState('overview');
-  const [memberFilter, setMemberFilter] = useState<'unpaid' | null>(null);
+  const [memberFilter, setMemberFilter] = useState<'unpaid' | 'partial' | null>(null);
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['overview']));
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleViewUnpaidMembers = () => {
     setMemberFilter('unpaid');
+    setVisitedTabs(prev => new Set(prev).add('members'));
+    setActiveTab('members');
+  };
+
+  const handleViewPartialMembers = () => {
+    setMemberFilter('partial');
     setVisitedTabs(prev => new Set(prev).add('members'));
     setActiveTab('members');
   };
@@ -114,6 +121,11 @@ export function Dashboard() {
                 active={activeTab === 'payments'}
                 onClick={() => handleTabChange('payments')}
               />
+              <TabButton
+                label="Reports"
+                active={activeTab === 'reports'}
+                onClick={() => handleTabChange('reports')}
+              />
               <button
                 onClick={() => setShowAddMemberModal(true)}
                 className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border-b-2 border-transparent hover:border-blue-600"
@@ -132,7 +144,7 @@ export function Dashboard() {
           {/* Tab Content */}
           <div className="mt-6">
             <div className={activeTab === 'overview' ? 'block' : 'hidden'}>
-              <OwnerDashboard key={`overview-${refreshKey}`} onViewUnpaidMembers={handleViewUnpaidMembers} />
+              <OwnerDashboard key={`overview-${refreshKey}`} onViewUnpaidMembers={handleViewUnpaidMembers} onViewPartialMembers={handleViewPartialMembers} />
             </div>
 
             <div className={activeTab === 'members' ? 'block' : 'hidden'}>
@@ -163,6 +175,10 @@ export function Dashboard() {
 
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}>
               {(activeTab === 'payments' || visitedTabs.has('payments')) && <PaymentView />}
+            </div>
+
+            <div className={activeTab === 'reports' ? 'block' : 'hidden'}>
+              {(activeTab === 'reports' || visitedTabs.has('reports')) && <Reports />}
             </div>
           </div>
 

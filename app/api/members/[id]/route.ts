@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, runAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-async function getUserRole(userId: string): Promise<string | null> {
-  const db = await getDatabase();
-  const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -89,8 +75,8 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Update only provided fields
-    const updateFields: any = { updated_at: new Date().toISOString() };
+    // Update only provided fields (updated_at stored as timestamp integer for consistency)
+    const updateFields: any = { updated_at: Date.now() };
     if (updateData.name) updateFields.name = updateData.name;
     if (updateData.phone) updateFields.phone = updateData.phone;
     if (updateData.email !== undefined) updateFields.email = updateData.email;

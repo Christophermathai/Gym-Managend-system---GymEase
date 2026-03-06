@@ -63,6 +63,7 @@ function createTables(db: Database.Database) {
       registration_fee REAL,
       security_deposit REAL,
       is_personal_training BOOLEAN DEFAULT FALSE,
+      is_couple_package BOOLEAN DEFAULT FALSE,
       is_active BOOLEAN DEFAULT TRUE,
       created_by TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -117,11 +118,14 @@ function createTables(db: Database.Database) {
       member_id TEXT NOT NULL,
       subscription_id TEXT,
       amount REAL NOT NULL,
+      amount_due REAL DEFAULT 0,
+      balance REAL DEFAULT 0,
       payment_type TEXT NOT NULL CHECK(payment_type IN ('membership', 'admission', 'registration', 'personal_training', 'other')),
       payment_mode TEXT NOT NULL CHECK(payment_mode IN ('cash', 'card', 'upi', 'bank_transfer', 'cheque')),
       transaction_id TEXT,
+      receipt_no TEXT,
       payment_date INTEGER NOT NULL,
-      status TEXT NOT NULL CHECK(status IN ('completed', 'pending', 'failed')),
+      status TEXT NOT NULL CHECK(status IN ('completed', 'pending', 'partial', 'failed')),
       notes TEXT,
       recorded_by TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -237,18 +241,95 @@ function createTables(db: Database.Database) {
     INSERT OR IGNORE INTO gym_settings (id, gym_name) VALUES (1, 'Gym Ease')
   `);
 
-  // Migration: Add is_personal_training column to fee_plans if it doesn't exist
+  // Migration: Add is_personal_training and is_couple_package columns to fee_plans if they don't exist
   try {
     const tableInfo = db.prepare("PRAGMA table_info(fee_plans)").all() as Array<{ name: string }>;
-    const hasColumn = tableInfo.some(col => col.name === 'is_personal_training');
+    const hasPTColumn = tableInfo.some(col => col.name === 'is_personal_training');
+    const hasCoupleColumn = tableInfo.some(col => col.name === 'is_couple_package');
 
-    if (!hasColumn) {
+    if (!hasPTColumn) {
       console.log('Adding is_personal_training column to fee_plans table...');
       db.exec(`ALTER TABLE fee_plans ADD COLUMN is_personal_training BOOLEAN DEFAULT FALSE`);
       console.log('Migration completed: is_personal_training column added');
     }
+
+    if (!hasCoupleColumn) {
+      console.log('Adding is_couple_package column to fee_plans table...');
+      db.exec(`ALTER TABLE fee_plans ADD COLUMN is_couple_package BOOLEAN DEFAULT FALSE`);
+      console.log('Migration completed: is_couple_package column added');
+    }
   } catch (error) {
     console.error('Migration error:', error);
+  }
+
+  // Migration: Add amount_due, balance, and receipt_no columns to payments if they don't exist
+  try {
+    const paymentCols = db.prepare("PRAGMA table_info(payments)").all() as Array<{ name: string }>;
+    const hasAmountDue = paymentCols.some(col => col.name === 'amount_due');
+    const hasBalance = paymentCols.some(col => col.name === 'balance');
+    const hasReceiptNo = paymentCols.some(col => col.name === 'receipt_no');
+
+    if (!hasAmountDue) {
+      db.exec(`ALTER TABLE payments ADD COLUMN amount_due REAL DEFAULT 0`);
+      console.log('Migration: amount_due column added to payments');
+    }
+    if (!hasBalance) {
+      db.exec(`ALTER TABLE payments ADD COLUMN balance REAL DEFAULT 0`);
+      console.log('Migration: balance column added to payments');
+    }
+    if (!hasReceiptNo) {
+      db.exec(`ALTER TABLE payments ADD COLUMN receipt_no TEXT`);
+      console.log('Migration: receipt_no column added to payments');
+    }
+  } catch (error) {
+    console.error('Migration error (payments balance/receipt):', error);
+  }
+
+  // Migration: Recreate payments table to allow 'partial' in status CHECK constraint
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='payments'").get() as any;
+    const needsMigration = tableInfo?.sql && !tableInfo.sql.includes("'partial'");
+
+    if (needsMigration) {
+      console.log('Migration: recreating payments table with partial status support...');
+      db.pragma('foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE payments_v2 (
+          id TEXT PRIMARY KEY,
+          member_id TEXT NOT NULL,
+          subscription_id TEXT,
+          amount REAL NOT NULL,
+          amount_due REAL DEFAULT 0,
+          balance REAL DEFAULT 0,
+          payment_type TEXT NOT NULL,
+          payment_mode TEXT NOT NULL,
+          transaction_id TEXT,
+          receipt_no TEXT,
+          payment_date INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          notes TEXT,
+          recorded_by TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+          FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL,
+          FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE RESTRICT
+        );
+        INSERT INTO payments_v2
+          SELECT id, member_id, subscription_id, amount,
+                 COALESCE(amount_due, amount, 0),
+                 COALESCE(balance, 0),
+                 payment_type, payment_mode, transaction_id, receipt_no, payment_date,
+                 status, notes, recorded_by, created_at
+          FROM payments;
+        DROP TABLE payments;
+        ALTER TABLE payments_v2 RENAME TO payments;
+      `);
+      db.pragma('foreign_keys = ON');
+      console.log('Migration: payments table recreated successfully');
+    }
+  } catch (error) {
+    console.error('Migration error (payments status partial):', error);
+    try { db.pragma('foreign_keys = ON'); } catch (_) { }
   }
 }
 

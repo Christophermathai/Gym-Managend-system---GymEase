@@ -1,19 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/db';
-import { verifyToken, extractToken } from '@/app/lib/auth';
-
-function getAuthUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  const token = extractToken(authHeader);
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded?.userId || null;
-}
-
-async function getUserRole(db: any, userId: string): Promise<string | null> {
-  const profile = await db.get('SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
-  return profile?.role || null;
-}
+import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,8 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const db = await getDatabase();
-    const userRole = await getUserRole(db, userId);
+    const userRole = await getUserRole(userId);
 
     return NextResponse.json({ role: userRole });
   } catch (error) {

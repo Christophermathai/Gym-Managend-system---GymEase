@@ -51,6 +51,10 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const [loading, setLoading] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [partnerSearchTerm, setPartnerSearchTerm] = useState('');
+  const [showPartnerDropdown, setShowPartnerDropdown] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -118,7 +122,28 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const handleMemberChange = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
     setSelectedMember(member || null);
+    setMemberSearchTerm(member ? `${member.name} (${member.phone})` : '');
+    setShowMemberDropdown(false);
     setFormData({ ...formData, memberId, feePlanId: '', amountDue: '', amountPaid: '', settlePaymentId: '' });
+  };
+
+  const filteredMembers = members.filter(member =>
+    member.name.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+    member.phone.includes(memberSearchTerm)
+  ).slice(0, 3); // Limit to top 3 results
+
+  const filteredPartners = members.filter(m =>
+    m.id !== formData.memberId && (
+      m.name.toLowerCase().includes(partnerSearchTerm.toLowerCase()) ||
+      m.phone.includes(partnerSearchTerm)
+    )
+  ).slice(0, 3); // Limit to top 3 results
+
+  const handlePartnerChange = (partnerId: string) => {
+    const partner = members.find(m => m.id === partnerId);
+    setPartnerSearchTerm(partner ? `${partner.name} (${partner.phone})` : '');
+    setShowPartnerDropdown(false);
+    setFormData({ ...formData, coupleMemberId: partnerId });
   };
 
   const handleSubmit = async () => {
@@ -226,24 +251,43 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         </div>
 
         <div className="space-y-4">
-          {/* Member Select */}
-          <div>
+          {/* Member Search Select */}
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">Member *</label>
-            <select
-              value={formData.memberId}
-              onChange={(e) => handleMemberChange(e.target.value)}
+            <input
+              type="text"
+              value={memberSearchTerm}
+              onChange={(e) => {
+                setMemberSearchTerm(e.target.value);
+                setShowMemberDropdown(true);
+                if (e.target.value === '') {
+                  handleMemberChange('');
+                }
+              }}
+              onFocus={() => setShowMemberDropdown(true)}
+              onBlur={() => setTimeout(() => setShowMemberDropdown(false), 200)}
+              placeholder={loadingMembers ? "Loading members..." : "Search by name or phone..."}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               disabled={loadingMembers}
-            >
-              <option value="">
-                {loadingMembers ? 'Loading members...' : 'Select a member'}
-              </option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.phone}) {member.subscription ? '' : '(New)'}
-                </option>
-              ))}
-            </select>
+            />
+            {showMemberDropdown && memberSearchTerm && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredMembers.length > 0 ? (
+                  filteredMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      onClick={() => handleMemberChange(member.id)}
+                      className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-0"
+                    >
+                      <div className="font-medium text-gray-900">{member.name}</div>
+                      <div className="text-sm text-gray-500">{member.phone} {member.subscription ? '' : '• New Member'}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500">No members found matching "{memberSearchTerm}"</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Member Status Indicator */}
@@ -348,19 +392,42 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               <label className="block text-sm font-semibold text-purple-900">
                 Select Partner (Couple Package) *
               </label>
-              <select
-                value={formData.coupleMemberId}
-                onChange={(e) => setFormData({ ...formData, coupleMemberId: e.target.value })}
-                className="w-full px-4 py-2.5 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                required
-              >
-                <option value="">Choose partner member...</option>
-                {members.filter(m => m.id !== formData.memberId).map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.phone})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={partnerSearchTerm}
+                  onChange={(e) => {
+                    setPartnerSearchTerm(e.target.value);
+                    setShowPartnerDropdown(true);
+                    if (e.target.value === '') {
+                      handlePartnerChange('');
+                    }
+                  }}
+                  onFocus={() => setShowPartnerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPartnerDropdown(false), 200)}
+                  placeholder="Search partner by name or phone..."
+                  className="w-full px-4 py-2.5 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  required={!formData.coupleMemberId} // only required if they haven't picked a valid partner
+                />
+                {showPartnerDropdown && partnerSearchTerm && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredPartners.length > 0 ? (
+                      filteredPartners.map((partner) => (
+                        <div
+                          key={partner.id}
+                          onClick={() => handlePartnerChange(partner.id)}
+                          className="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b last:border-0"
+                        >
+                          <div className="font-medium text-purple-900">{partner.name}</div>
+                          <div className="text-sm text-purple-700">{partner.phone}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-500">No partner found matching "{partnerSearchTerm}"</div>
+                    )}
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-purple-700 font-medium">
                 Note: The payment amount and due balance will be automatically split exactly in half (50%) between {selectedMember?.name} and the chosen partner. Two separate payment records and subscriptions will be generated.
               </p>

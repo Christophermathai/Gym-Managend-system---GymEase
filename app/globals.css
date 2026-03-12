@@ -2,18 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #f9fafb;
+@layer base {
+  body {
+    @apply bg-obsidian-900 text-industrial-300 font-sans antialiased selection:bg-electric-500 selection:text-white;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-industrial-50 font-bold tracking-tight;
+  }
 }
 
-.auth-input-field {
-  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition;
-}
+@layer components {
+  /* Generic util inputs/buttons to maintain legacy auth functionality if not yet rewritten */
+  .auth-input-field {
+    @apply w-full px-4 py-2.5 bg-obsidian-800 border border-obsidian-600 rounded text-industrial-50 focus:outline-none focus:border-electric-500 focus:ring-1 focus:ring-electric-500 transition-colors placeholder:text-obsidian-600;
+  }
 
-.auth-button {
-  @apply w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.form-field {
-  @apply gap-4;
+  .auth-button {
+    @apply w-full px-4 py-2.5 bg-electric-500 text-white rounded font-medium hover:bg-electric-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
 }

@@ -94,26 +94,32 @@ export function LeadManagement() {
     }
   };
 
-  if (loading) return <div className="p-4">Loading leads...</div>;
+  if (loading) return (
+    <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+    </div>
+  );
 
   return (
-    <div className="p-6 bg-white rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Leads</h2>
+    <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg">
+      <div className="flex justify-between items-center mb-6 border-b border-obsidian-700 pb-4">
+        <h2 className="text-2xl font-bold text-industrial-50 font-sans tracking-tight">Leads</h2>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 transition-colors flex items-center gap-2 text-sm font-medium"
         >
-          + Add Lead
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+          Add Lead
         </button>
       </div>
 
       {/* Status Filter */}
-      <div className="mb-4">
+      <div className="mb-6 max-w-xs">
+        <label className="block text-xs font-bold text-industrial-400 uppercase tracking-wider mb-1.5 border-l-2 border-electric-500 pl-2">Status Filter</label>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="px-4 py-2 border rounded"
+          className="w-full px-3 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
         >
           <option value="">All Status</option>
           <option value="new">New</option>
@@ -125,129 +131,144 @@ export function LeadManagement() {
       </div>
 
       {/* Leads Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-100">
+      <div className="overflow-x-auto border border-obsidian-600 rounded">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-obsidian-900 border-b border-obsidian-600">
             <tr>
-              <th className="p-2 text-left">Name</th>
-              <th className="p-2 text-left">Phone</th>
-              <th className="p-2 text-left">Email</th>
-              <th className="p-2 text-left">Source</th>
-              <th className="p-2 text-left">Level</th>
-              <th className="p-2 text-left">Status</th>
-              <th className="p-2 text-center">Actions</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Name</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Phone</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Email</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Source</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Level</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px]">Status</th>
+              <th className="px-4 py-3 font-semibold text-industrial-400 uppercase tracking-widest text-[10px] text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id} className="border-b hover:bg-gray-50">
-                <td className="p-2">{lead.name}</td>
-                <td className="p-2">{lead.phone}</td>
-                <td className="p-2">{lead.email || '-'}</td>
-                <td className="p-2 capitalize">{lead.source}</td>
-                <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    lead.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
-                    lead.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {lead.interest_level.toUpperCase()}
-                  </span>
-                </td>
-                <td className="p-2 capitalize">{lead.status}</td>
-                <td className="p-2 text-center">
-                  <button
-                    onClick={() => handleDelete(lead.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
+          <tbody className="divide-y divide-obsidian-700/50">
+            {leads.length > 0 ? (
+              leads.map((lead) => (
+                <tr key={lead.id} className="hover:bg-obsidian-700/30 transition-colors group">
+                  <td className="px-4 py-3 text-industrial-50 font-medium">{lead.name}</td>
+                  <td className="px-4 py-3 font-mono text-industrial-300">{lead.phone}</td>
+                  <td className="px-4 py-3 text-industrial-400">{lead.email || '-'}</td>
+                  <td className="px-4 py-3 capitalize text-industrial-300">{lead.source}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 border text-[10px] font-bold uppercase tracking-wider rounded-[2px] ${lead.interest_level === 'hot' ? 'bg-red-500/10 border-red-500/30 text-red-500' :
+                        lead.interest_level === 'warm' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
+                          'bg-electric-500/10 border-electric-500/30 text-electric-500'
+                      }`}>
+                      {lead.interest_level}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
+                      {lead.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleDelete(lead.id)}
+                        className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/30 rounded text-xs font-bold tracking-wider hover:bg-red-500/20 transition-colors uppercase"
+                      >
+                        DEL
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-industrial-400 font-mono text-xs">
+                  [ NO LEADS FOUND IN DATABASE ]
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Add Lead</h3>
+        <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">Add Lead</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium">Name *</label>
+                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Name *</label>
                 <input
                   type="text"
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium">Phone *</label>
+                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Phone *</label>
                 <input
                   type="tel"
                   value={formData.phone || ''}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium">Email</label>
+                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email || ''}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium">Source *</label>
-                <select
-                  value={formData.source || ''}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
-                >
-                  <option value="">Select source</option>
-                  <option value="walk_in">Walk-in</option>
-                  <option value="referral">Referral</option>
-                  <option value="online">Online</option>
-                  <option value="phone">Phone</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Source *</label>
+                  <select
+                    value={formData.source || ''}
+                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+                  >
+                    <option value="">Select source</option>
+                    <option value="walk_in">Walk-in</option>
+                    <option value="referral">Referral</option>
+                    <option value="online">Online</option>
+                    <option value="phone">Phone</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium">Interest Level *</label>
-                <select
-                  value={formData.interest_level || ''}
-                  onChange={(e) => setFormData({ ...formData, interest_level: e.target.value })}
-                  className="w-full px-3 py-2 border rounded"
-                >
-                  <option value="">Select level</option>
-                  <option value="hot">Hot</option>
-                  <option value="warm">Warm</option>
-                  <option value="cold">Cold</option>
-                </select>
+                <div>
+                  <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Interest Level *</label>
+                  <select
+                    value={formData.interest_level || ''}
+                    onChange={(e) => setFormData({ ...formData, interest_level: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+                  >
+                    <option value="">Select level</option>
+                    <option value="hot">Hot</option>
+                    <option value="warm">Warm</option>
+                    <option value="cold">Cold</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end space-x-2">
+            <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
+                className="px-4 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded hover:text-industrial-50 text-sm font-medium transition-colors"
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 onClick={handleAdd}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 text-sm font-medium transition-colors"
               >
-                Add Lead
+                ADD LEAD
               </button>
             </div>
           </div>

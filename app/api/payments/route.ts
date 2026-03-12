@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Split the amount precisely if couple package
     const perMemberAmountPaid = isCouplePayment ? amountPaid / 2 : amountPaid;
     const perMemberAmountDue = isCouplePayment ? amountDue / 2 : amountDue;
-    const perMemberBalance = Math.max(0, perMemberAmountDue - perMemberAmountPaid);
+    const perMemberBalance = Math.max(0, Math.round(((perMemberAmountDue - perMemberAmountPaid) + Number.EPSILON) * 100) / 100);
     const perMemberStatus = perMemberBalance > 0 ? 'partial' : (body.status || 'completed');
 
     for (const currentMemberId of membersToProcess) {
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         // Settlement is typically not done as a new combined couple payment
         const origPayment = await getAsync(db, 'SELECT * FROM payments WHERE id = ?', [finalSettlePaymentId]);
         if (origPayment) {
-          const newBalance = Math.max(0, origPayment.balance - perMemberAmountPaid);
+          const newBalance = Math.max(0, Math.round(((origPayment.balance - perMemberAmountPaid) + Number.EPSILON) * 100) / 100);
           const newStatus = newBalance > 0 ? 'partial' : 'completed';
           await runAsync(
             db,

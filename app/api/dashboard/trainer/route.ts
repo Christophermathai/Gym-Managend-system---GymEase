@@ -28,11 +28,22 @@ export async function GET(request: NextRequest) {
     );
 
     // Pending payments (count only, no amounts for trainers)
-    const pendingPayments = await allAsync(
+    // Filter for members with 'pending' status OR active members with no current 'active' subscription
+    const pendingAndPartialPayments = await allAsync(
       db,
-      'SELECT member_id FROM payments WHERE status = ?',
-      ['pending']
+      `SELECT DISTINCT m.id, p.balance, p.status 
+       FROM members m
+       LEFT JOIN payments p ON m.id = p.member_id
+       LEFT JOIN subscriptions s ON m.id = s.member_id
+       WHERE m.is_active = 1 
+       AND (
+         p.status IN ('pending', 'partial') AND (p.balance > 0 OR p.status = 'pending')
+         OR m.id NOT IN (SELECT member_id FROM subscriptions WHERE end_date >= ? AND status = 'active')
+       )`,
+      [now]
     );
+
+    let pendingPaymentsCount = pendingAndPartialPayments.length;
 
     // New admissions this month
     const newAdmissions = await allAsync(
@@ -49,7 +60,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Get member details for pending payments (names only, no amounts)
-    const pendingMemberIds = [...new Set(pendingPayments.map(p => p.member_id))];
+    const pendingMemberIds = [...new Set(pendingAndPartialPayments.map((p: any) => p.id))];
     const pendingMembers = await Promise.all(
       pendingMemberIds.slice(0, 10).map(id => getAsync(db, 'SELECT id, name, phone FROM members WHERE id = ?', [id]))
     );
@@ -73,30 +84,35 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    // Paid members (members with at least one completed payment)
-    const paidMembers = await allAsync(
-      db,
-      `SELECT DISTINCT m.id
-       FROM members m
-       INNER JOIN payments p ON m.id = p.member_id
-       WHERE m.is_active = ? AND p.status = ?`,
-      [1, 'completed']
-    );
-
-    // Partial members (members with at least one partial payment)
+    // Partial members (members with an outstanding partial balance)
     const partialMembers = await allAsync(
       db,
       `SELECT DISTINCT m.id
        FROM members m
        INNER JOIN payments p ON m.id = p.member_id
-       WHERE m.is_active = ? AND p.status = ?`,
-      [1, 'partial']
+       WHERE m.is_active = 1 AND p.status = 'partial' AND p.balance > 0`,
+      []
+    );
+
+    // Paid members (members with an active subscription and NO outstanding partial balance)
+    const paidMembers = await allAsync(
+      db,
+      `SELECT DISTINCT m.id
+       FROM members m
+       INNER JOIN subscriptions s ON m.id = s.member_id
+       WHERE m.is_active = 1 
+         AND s.end_date >= ?
+         AND s.status = 'active'
+         AND m.id NOT IN (
+           SELECT member_id FROM payments WHERE status = 'partial' AND balance > 0
+         )`,
+      [now]
     );
 
     return NextResponse.json({
       overview: {
         totalActiveMembers: activeMembers.length,
-        pendingPaymentsCount: pendingPayments.length,
+        pendingPaymentsCount: pendingPaymentsCount,
         paidMembersCount: paidMembers.length,
         partialMembersCount: partialMembers.length,
         newAdmissionsMonth: newAdmissions.length,

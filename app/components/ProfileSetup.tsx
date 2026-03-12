@@ -28,39 +28,41 @@ export function ProfileSetup() {
   return (
     <div className="flex items-center justify-center min-h-[500px] p-8">
       <div className="w-full max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-600 mb-4">Complete Your Profile</h1>
-          <p className="text-gray-600">Set up your gym owner profile</p>
+        <div className="text-center mb-10">
+          <h1 className="text-2xl font-bold text-industrial-50 mb-2 uppercase tracking-wide">Complete Your Profile</h1>
+          <p className="text-industrial-400 font-mono text-xs uppercase tracking-widest">[ SET UP YOUR GYM OWNER PROFILE ]</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+        <form onSubmit={handleSubmit} className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-2xl p-8">
+          <div className="mb-6">
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 border-l-2 border-electric-500 pl-2">Name *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="auth-input-field"
+              className="w-full px-4 py-3 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none transition-colors"
+              placeholder="FULL NAME"
               required
             />
           </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone (Optional)</label>
+          <div className="mb-8">
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 pl-2">Phone (Optional)</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="auth-input-field"
+              className="w-full px-4 py-3 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono transition-colors"
+              placeholder="PHONE NUMBER"
             />
           </div>
 
           <button
             type="submit"
             disabled={submitting || !name}
-            className="auth-button"
+            className="w-full px-6 py-3 bg-electric-500 text-white rounded text-sm font-bold uppercase tracking-wider hover:bg-electric-600 disabled:opacity-50 border border-transparent shadow-[0_0_15px_rgba(0,102,255,0.3)] transition-colors"
           >
-            {submitting ? 'Creating Profile...' : 'Create Profile'}
+            {submitting ? 'CREATING PROFILE...' : 'CREATE PROFILE'}
           </button>
         </form>
       </div>

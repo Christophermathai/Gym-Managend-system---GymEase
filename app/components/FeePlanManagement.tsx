@@ -132,42 +132,86 @@ export function FeePlanManagement() {
     }
   };
 
-  if (loading) return <div className="p-4">Loading fee plans...</div>;
+  if (loading) return (
+    <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+    </div>
+  );
 
   return (
-    <div className="p-6 bg-white rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Fee Plans</h2>
+    <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg">
+      <div className="flex justify-between items-center mb-6 border-b border-obsidian-700 pb-4">
+        <h2 className="text-2xl font-bold text-industrial-50 font-sans tracking-tight">Fee Plans</h2>
         <button
           onClick={handleAddClick}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 transition-colors flex items-center gap-2 text-sm font-medium"
         >
-          + Add Plan
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+          Add Plan
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {plans.map((plan) => (
-          <div key={plan.id} className="border rounded-lg p-4 hover:shadow-lg">
-            <h3 className="text-lg font-bold">{plan.name}</h3>
-            <p className="text-gray-600 mb-2">{plan.duration} months</p>
-
-            <div className="space-y-2 text-sm mb-4">
-              <p>Monthly: {formatCurrency(plan.monthly_fee)}</p>
-              <p>Admission: {formatCurrency(plan.admission_fee)}</p>
-              <p>Registration: {formatCurrency(plan.registration_fee)}</p>
+          <div key={plan.id} className="relative bg-obsidian-900 border border-obsidian-600 rounded p-5 hover:border-electric-500/50 hover:shadow-lg hover:shadow-electric-900/10 transition-all group flex flex-col">
+            <div className="mb-4 bg-obsidian-800 -mx-5 -mt-5 p-4 border-b border-obsidian-600 rounded-t flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold text-industrial-50 uppercase tracking-wide">{plan.name}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-electric-500 font-mono text-sm font-bold">{plan.duration} MO.</span>
+                  {plan.is_active ? (
+                    <span className="px-1.5 py-0.5 bg-green-500/10 border border-green-500/30 text-green-500 text-[10px] font-bold uppercase tracking-wider rounded-[2px]">Active</span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 bg-red-500/10 border border-red-500/30 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded-[2px]">Inactive</span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {plan.is_personal_training && (
+                <span className="px-2 py-1 bg-obsidian-700 border border-obsidian-600 text-electric-500 text-[10px] font-bold uppercase tracking-wider rounded-[2px]">
+                  PT Plan
+                </span>
+              )}
+              {plan.is_couple_package && (
+                <span className="px-2 py-1 bg-obsidian-700 border border-obsidian-600 text-steelgold-500 text-[10px] font-bold uppercase tracking-wider rounded-[2px]">
+                  Couple Pkg
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2 text-sm mb-6 flex-1 font-mono text-industrial-300">
+              <div className="flex justify-between border-b border-obsidian-700/50 pb-1">
+                <span className="text-industrial-400">Monthly</span>
+                <span className="text-industrial-50">{formatCurrency(plan.monthly_fee)}</span>
+              </div>
+              <div className="flex justify-between border-b border-obsidian-700/50 pb-1">
+                <span className="text-industrial-400">Admission</span>
+                <span className="text-industrial-50">{formatCurrency(plan.admission_fee)}</span>
+              </div>
+              <div className="flex justify-between border-b border-obsidian-700/50 pb-1">
+                <span className="text-industrial-400">Registration</span>
+                <span className="text-industrial-50">{formatCurrency(plan.registration_fee)}</span>
+              </div>
+              {plan.security_deposit > 0 && (
+                <div className="flex justify-between border-b border-obsidian-700/50 pb-1">
+                  <span className="text-industrial-400">Security Dep.</span>
+                  <span className="text-industrial-50">{formatCurrency(plan.security_deposit)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
               <button
                 onClick={() => handleEditClick(plan)}
-                className="flex-1 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                className="flex-1 px-3 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold tracking-wider hover:border-industrial-400 hover:text-industrial-50 transition-colors uppercase"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(plan.id)}
-                className="flex-1 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                className="px-3 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded text-xs font-bold tracking-wider hover:bg-red-500/20 transition-colors uppercase"
               >
                 Delete
               </button>
@@ -215,122 +259,137 @@ function PlanModal({
   title: string;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-xl font-bold mb-4">{title}</h3>
+    <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">{title}</h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium">Name</label>
+            <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Name</label>
             <input
               type="text"
               value={plan.name || ''}
               onChange={(e) => onChange({ ...plan, name: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none placeholder:text-obsidian-500"
+              placeholder="e.g. Premium Access"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">Duration (months)</label>
-            <input
-              type="number"
-              value={plan.duration || ''}
-              onChange={(e) => onChange({ ...plan, duration: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border rounded"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Duration (mo)</label>
+              <input
+                type="number"
+                value={plan.duration || ''}
+                onChange={(e) => onChange({ ...plan, duration: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono placeholder:text-obsidian-500"
+                placeholder="12"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Monthly Fee</label>
+              <input
+                type="number"
+                value={plan.monthly_fee || ''}
+                onChange={(e) => onChange({ ...plan, monthly_fee: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono placeholder:text-obsidian-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Admission Fee</label>
+              <input
+                type="number"
+                value={plan.admission_fee || ''}
+                onChange={(e) => onChange({ ...plan, admission_fee: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono placeholder:text-obsidian-500"
+                placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Reg. Fee</label>
+              <input
+                type="number"
+                value={plan.registration_fee || ''}
+                onChange={(e) => onChange({ ...plan, registration_fee: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono placeholder:text-obsidian-500"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Monthly Fee</label>
-            <input
-              type="number"
-              value={plan.monthly_fee || ''}
-              onChange={(e) => onChange({ ...plan, monthly_fee: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Admission Fee</label>
-            <input
-              type="number"
-              value={plan.admission_fee || ''}
-              onChange={(e) => onChange({ ...plan, admission_fee: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Registration Fee</label>
-            <input
-              type="number"
-              value={plan.registration_fee || ''}
-              onChange={(e) => onChange({ ...plan, registration_fee: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Security Deposit</label>
+            <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Security Deposit</label>
             <input
               type="number"
               value={plan.security_deposit || ''}
-              onChange={(e) => onChange({ ...plan, security_deposit: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 border rounded"
+              onChange={(e) => onChange({ ...plan, security_deposit: parseFloat(e.target.value) || 0 })}
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono placeholder:text-obsidian-500"
+              placeholder="0.00"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Description</label>
+            <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Description</label>
             <textarea
               value={plan.description || ''}
               onChange={(e) => onChange({ ...plan, description: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none placeholder:text-obsidian-500"
               rows={2}
+              placeholder="Features, conditions, etc..."
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
+          <div className="grid gap-3 pt-2">
+            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
               <input
                 type="checkbox"
-                id="is_personal_training"
                 checked={plan.is_personal_training || false}
                 onChange={(e) => onChange({ ...plan, is_personal_training: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-electric-500 focus:ring-electric-500 rounded-sm"
               />
-              <label htmlFor="is_personal_training" className="text-sm font-medium cursor-pointer">
-                Personal Training Plan
-              </label>
-            </div>
+              <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Personal Training Plan</span>
+            </label>
 
-            <div className="flex items-center space-x-2">
+            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
               <input
                 type="checkbox"
-                id="is_couple_package"
                 checked={plan.is_couple_package || false}
                 onChange={(e) => onChange({ ...plan, is_couple_package: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-steelgold-500 focus:ring-steelgold-500 rounded-sm"
               />
-              <label htmlFor="is_couple_package" className="text-sm font-medium cursor-pointer">
-                Couple Package Plan
-              </label>
-            </div>
+              <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Couple Package Plan</span>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-green-500 transition-colors mt-2">
+              <input
+                type="checkbox"
+                checked={plan.is_active !== undefined ? plan.is_active : true}
+                onChange={(e) => onChange({ ...plan, is_active: e.target.checked })}
+                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-green-500 focus:ring-green-500 rounded-sm"
+              />
+              <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Active Plan</span>
+            </label>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end space-x-2">
+        <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
+            className="px-4 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded hover:text-industrial-50 text-sm font-medium transition-colors"
           >
-            Cancel
+            CANCEL
           </button>
           <button
             onClick={onSave}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 text-sm font-medium transition-colors"
           >
-            Save
+            SAVE PLAN
           </button>
         </div>
       </div>

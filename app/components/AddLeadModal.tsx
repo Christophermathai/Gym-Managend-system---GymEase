@@ -71,98 +71,98 @@ export function AddLeadModal({ isOpen, onClose, onSuccess }: AddLeadModalProps) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-120 overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Add New Lead</h3>
+    <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-obsidian-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto border border-obsidian-600 shadow-2xl">
+        <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2 uppercase tracking-wide">Add New Lead</h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium">Name *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-              placeholder="Lead name"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none transition-colors"
+              placeholder="LEAD NAME"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Phone *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Phone *</label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-              placeholder="Phone number"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono transition-colors"
+              placeholder="PHONE NUMBER"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-              placeholder="Email address"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono transition-colors"
+              placeholder="EMAIL ADDRESS"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Source *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Source *</label>
             <select
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none transition-colors uppercase tracking-wide text-xs"
             >
-              <option value="">Select a source</option>
-              <option value="walk_in">Walk In</option>
-              <option value="referral">Referral</option>
-              <option value="online">Online</option>
-              <option value="phone">Phone</option>
+              <option value="">SELECT A SOURCE</option>
+              <option value="walk_in">WALK IN</option>
+              <option value="referral">REFERRAL</option>
+              <option value="online">ONLINE</option>
+              <option value="phone">PHONE</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Interest Level</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Interest Level</label>
             <select
               value={formData.interest_level}
               onChange={(e) => setFormData({ ...formData, interest_level: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none transition-colors uppercase tracking-wide text-xs"
             >
-              <option value="cold">Cold</option>
-              <option value="warm">Warm</option>
-              <option value="hot">Hot</option>
+              <option value="cold">COLD</option>
+              <option value="warm">WARM</option>
+              <option value="hot">HOT</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Notes</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-              placeholder="Additional notes"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none transition-colors resize-none placeholder:text-obsidian-500 uppercase tracking-wide text-xs"
+              placeholder="ADDITIONAL NOTES"
               rows={2}
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end space-x-2">
+        <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
+            className="px-6 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 transition-colors disabled:opacity-50"
             disabled={loading}
           >
-            Cancel
+            CANCEL
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+            className="px-6 py-2 bg-electric-500 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-electric-600 disabled:opacity-50 border border-transparent shadow-[0_0_15px_rgba(0,102,255,0.3)] transition-colors"
             disabled={loading}
           >
-            {loading ? 'Adding...' : 'Add Lead'}
+            {loading ? 'ADDING...' : 'ADD LEAD'}
           </button>
         </div>
       </div>

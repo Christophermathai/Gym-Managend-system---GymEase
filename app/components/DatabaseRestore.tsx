@@ -65,10 +65,13 @@ export function DatabaseRestore() {
     };
 
     return (
-        <div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-yellow-900 mb-2">⚠️ Warning:</h3>
-                <ul className="list-disc list-inside text-sm text-yellow-800 space-y-1">
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+                <h3 className="font-bold text-red-500 uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+                    Warning
+                </h3>
+                <ul className="list-square list-inside text-xs text-red-400/80 space-y-1 font-mono tracking-wide">
                     <li>Restoring a backup will replace your current database</li>
                     <li>Your current database will be backed up before restore</li>
                     <li>You must restart the application after restore</li>
@@ -79,36 +82,41 @@ export function DatabaseRestore() {
             <button
                 onClick={fetchBackups}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-300 mb-4"
+                className="px-4 py-2 bg-obsidian-700 text-industrial-50 border border-obsidian-600 rounded hover:border-electric-500 hover:text-electric-500 font-bold tracking-wider text-xs uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
             >
-                {loading ? 'Loading...' : 'Load Available Backups'}
+                {loading ? 'LOADING...' : 'LOAD AVAILABLE BACKUPS'}
             </button>
 
             {backups.length > 0 && (
-                <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900 mb-2">Available Backups:</h3>
-                    {backups.map((backup, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex-1">
-                                <p className="font-medium text-gray-900">{backup.name}</p>
-                                <p className="text-sm text-gray-600">
-                                    {new Date(backup.modified).toLocaleString()} • {(backup.size / 1024).toFixed(2)} KB
-                                </p>
+                <div className="space-y-3">
+                    <h3 className="font-bold text-industrial-400 uppercase tracking-widest text-xs mb-3 border-b border-obsidian-700 pb-2">Available Backups</h3>
+                    <div className="grid gap-3">
+                        {backups.map((backup, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-obsidian-900 border border-obsidian-700 rounded-lg group hover:border-electric-500 transition-colors">
+                                <div className="mb-3 sm:mb-0">
+                                    <p className="font-bold text-industrial-50 font-mono">{backup.name}</p>
+                                    <p className="text-xs text-obsidian-400 font-mono mt-1">
+                                        {new Date(backup.modified).toLocaleString()} <span className="mx-2 text-obsidian-600">|</span> {(backup.size / 1024).toFixed(2)} KB
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => handleRestore(backup.path)}
+                                    disabled={restoring}
+                                    className="w-full sm:w-auto px-6 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded font-bold tracking-widest text-xs uppercase hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {restoring ? 'RESTORING...' : 'RESTORE'}
+                                </button>
                             </div>
-                            <button
-                                onClick={() => handleRestore(backup.path)}
-                                disabled={restoring}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:bg-gray-300 text-sm"
-                            >
-                                {restoring ? 'Restoring...' : 'Restore'}
-                            </button>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             )}
 
             {backups.length === 0 && !loading && (
-                <p className="text-gray-500 text-sm">No backups found. Backups are created automatically every 30 minutes.</p>
+                <div className="p-6 text-center border border-dashed border-obsidian-700 rounded-lg">
+                    <p className="text-industrial-400 font-mono text-xs uppercase tracking-widest">[ NO BACKUPS FOUND ]</p>
+                    <p className="text-obsidian-400 text-[10px] mt-2 font-mono">Backups are created automatically every 30 minutes.</p>
+                </div>
             )}
         </div>
     );

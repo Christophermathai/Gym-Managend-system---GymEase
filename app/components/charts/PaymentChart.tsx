@@ -11,12 +11,12 @@ interface PaymentChartProps {
 
 export function PaymentChart({ paidCount, unpaidCount, partialCount = 0 }: PaymentChartProps) {
     const data = [
-        { name: 'Paid Fees', value: paidCount, color: '#10b981' },
-        { name: 'Unpaid Fees', value: unpaidCount, color: '#ef4444' },
+        { name: 'Paid Fees', value: paidCount, color: '#10b981' }, // green-500
+        { name: 'Unpaid Fees', value: unpaidCount, color: '#ef4444' }, // red-500
     ];
 
     if (partialCount > 0) {
-        data.push({ name: 'Partial Payment', value: partialCount, color: '#f59e0b' });
+        data.push({ name: 'Outstanding Bal.', value: partialCount, color: '#f97316' }); // orange-500
     }
 
     const total = paidCount + unpaidCount + partialCount;
@@ -26,65 +26,64 @@ export function PaymentChart({ paidCount, unpaidCount, partialCount = 0 }: Payme
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="relative overflow-hidden rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl p-6"
+            className="w-full flex flex-col md:flex-row items-center gap-6"
         >
-            <h3 className="text-xl font-bold text-white mb-4">Payment Status</h3>
+            <div className="w-full md:w-1/2">
+                <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            animationBegin={0}
+                            animationDuration={800}
+                        >
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                        </Pie>
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', color: '#f8fafc', fontSize: '12px', fontFamily: 'monospace' }}
+                            itemStyle={{ color: '#f8fafc' }}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="w-full md:w-1/2">
-                    <ResponsiveContainer width="100%" height={250}>
-                        <PieChart>
-                            <Pie
-                                data={data}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                                animationBegin={0}
-                                animationDuration={800}
-                            >
-                                {data.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
+            <div className="w-full md:w-1/2 space-y-4">
+                <div className="bg-obsidian-900 border border-obsidian-700/50 border-l-4 border-l-green-500 rounded p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Paid</span>
+                        <span className="text-xl font-mono font-bold text-green-500">{paidPercentage}%</span>
+                    </div>
+                    <p className="text-industrial-500 font-mono text-xs mt-1">{paidCount} MEMBERS</p>
                 </div>
 
-                <div className="w-full md:w-1/2 space-y-4">
-                    <div className="bg-green-500/20 backdrop-blur-sm rounded-xl p-4 border border-green-500/30">
-                        <div className="flex items-center justify-between">
-                            <span className="text-green-100 font-medium">Paid</span>
-                            <span className="text-2xl font-bold text-green-400">{paidPercentage}%</span>
-                        </div>
-                        <p className="text-green-200 text-sm mt-1">{paidCount} members</p>
+                <div className="bg-obsidian-900 border border-obsidian-700/50 border-l-4 border-l-red-500 rounded p-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Unpaid</span>
+                        <span className="text-xl font-mono font-bold text-red-500">{unpaidPercentage}%</span>
                     </div>
-
-                    <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-4 border border-red-500/30">
-                        <div className="flex items-center justify-between">
-                            <span className="text-red-100 font-medium">Unpaid</span>
-                            <span className="text-2xl font-bold text-red-400">{unpaidPercentage}%</span>
-                        </div>
-                        <p className="text-red-200 text-sm mt-1">{unpaidCount} members</p>
-                    </div>
-
-                    {partialCount > 0 && (
-                        <div className="bg-amber-500/20 backdrop-blur-sm rounded-xl p-4 border border-amber-500/30">
-                            <div className="flex items-center justify-between">
-                                <span className="text-amber-100 font-medium">Outstanding Bal.</span>
-                                <span className="text-2xl font-bold text-amber-400">{partialPercentage}%</span>
-                            </div>
-                            <p className="text-amber-200 text-sm mt-1">{partialCount} members</p>
-                        </div>
-                    )}
+                    <p className="text-industrial-500 font-mono text-xs mt-1">{unpaidCount} MEMBERS</p>
                 </div>
+
+                {partialCount > 0 && (
+                    <div className="bg-obsidian-900 border border-obsidian-700/50 border-l-4 border-l-orange-500 rounded p-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Outstanding Bal.</span>
+                            <span className="text-xl font-mono font-bold text-orange-500">{partialPercentage}%</span>
+                        </div>
+                        <p className="text-industrial-500 font-mono text-xs mt-1">{partialCount} MEMBERS</p>
+                    </div>
+                )}
             </div>
         </motion.div>
     );

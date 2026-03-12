@@ -233,15 +233,15 @@ const COLUMNS: Record<ReportType, { key: string; label: string; format?: (v: any
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
     const colorMap: Record<string, string> = {
-        green: 'text-green-600',
-        red: 'text-red-600',
-        blue: 'text-blue-600',
-        yellow: 'text-yellow-600',
+        green: 'text-green-500',
+        red: 'text-red-500',
+        blue: 'text-electric-500',
+        yellow: 'text-orange-500',
     };
     return (
-        <div className="bg-white border rounded-lg p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">{label}</p>
-            <p className={`text-xl font-bold ${color ? colorMap[color] : 'text-gray-800'}`}>{value}</p>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4 shadow-lg">
+            <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">{label}</p>
+            <p className={`text-xl font-mono font-bold ${color ? colorMap[color] : 'text-industrial-50'}`}>{value}</p>
         </div>
     );
 }
@@ -296,21 +296,21 @@ function SummaryCards({ result }: { result: ReportResult }) {
                     <StatCard label="Active Members" value={summary.activeMembers} color="blue" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white border rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-700 mb-3">Revenue by Type</h4>
+                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4">
+                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-green-500 pl-2">Revenue by Type</h4>
                         {Object.entries(summary.revenueByType || {}).map(([t, amt]) => (
-                            <div key={t} className="flex justify-between py-1 text-sm border-b last:border-0">
-                                <span className="text-gray-600 capitalize">{t.replace(/_/g, ' ')}</span>
-                                <span className="font-medium text-green-700">{formatCurrency(amt as number)}</span>
+                            <div key={t} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors">
+                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1">{t.replace(/_/g, ' ')}</span>
+                                <span className="font-mono font-bold text-green-500 pr-1">{formatCurrency(amt as number)}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="bg-white border rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-700 mb-3">Expenses by Category</h4>
+                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4">
+                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-red-500 pl-2">Expenses by Category</h4>
                         {Object.entries(summary.expensesByCategory || {}).map(([cat, amt]) => (
-                            <div key={cat} className="flex justify-between py-1 text-sm border-b last:border-0">
-                                <span className="text-gray-600 capitalize">{cat}</span>
-                                <span className="font-medium text-red-700">{formatCurrency(amt as number)}</span>
+                            <div key={cat} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors">
+                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1">{cat}</span>
+                                <span className="font-mono font-bold text-red-500 pr-1">{formatCurrency(amt as number)}</span>
                             </div>
                         ))}
                     </div>
@@ -381,17 +381,17 @@ export function Reports() {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">Reports</h2>
-                <p className="text-gray-500 text-sm mb-6">Generate reports on-demand. Reports are never generated automatically.</p>
+                <h2 className="text-2xl font-bold text-industrial-50 mb-1">Reports</h2>
+                <p className="text-industrial-400 text-[10px] uppercase font-bold tracking-widest mb-6">Generate reports on-demand. Reports are never generated automatically.</p>
 
                 {/* Controls */}
-                <div className="bg-white border rounded-xl p-5 shadow-sm">
+                <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-5 shadow-lg">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                         {/* Report Type */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+                            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Report Type</label>
                             <select
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-obsidian-900 border border-obsidian-600 rounded px-3 py-2 text-sm text-industrial-50 focus:outline-none focus:border-electric-500 transition-colors uppercase tracking-wider font-bold"
                                 value={reportType}
                                 onChange={e => { setReportType(e.target.value as ReportType); setResult(null); }}
                             >
@@ -407,19 +407,19 @@ export function Reports() {
                         {showDateRange && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                                    <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">From Date</label>
                                     <input
                                         type="date"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full bg-obsidian-900 border border-obsidian-600 rounded px-3 py-2 text-sm text-industrial-50 focus:outline-none focus:border-electric-500 transition-colors font-mono [color-scheme:dark]"
                                         value={from}
                                         onChange={e => setFrom(e.target.value)}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                                    <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">To Date</label>
                                     <input
                                         type="date"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full bg-obsidian-900 border border-obsidian-600 rounded px-3 py-2 text-sm text-industrial-50 focus:outline-none focus:border-electric-500 transition-colors font-mono [color-scheme:dark]"
                                         value={to}
                                         onChange={e => setTo(e.target.value)}
                                     />
@@ -430,12 +430,12 @@ export function Reports() {
                         {/* Days ahead (expiring only) */}
                         {showDays && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Days Ahead</label>
+                                <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Days Ahead</label>
                                 <input
                                     type="number"
                                     min={1}
                                     max={365}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-obsidian-900 border border-obsidian-600 rounded px-3 py-2 text-sm text-industrial-50 focus:outline-none focus:border-electric-500 transition-colors font-mono"
                                     value={days}
                                     onChange={e => setDays(parseInt(e.target.value) || 7)}
                                 />
@@ -447,21 +447,21 @@ export function Reports() {
                             <button
                                 onClick={generateReport}
                                 disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                className="w-full bg-electric-500 hover:bg-electric-600 disabled:opacity-60 text-white font-bold text-[10px] uppercase tracking-widest py-2 px-4 rounded transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,102,255,0.3)]"
                             >
                                 {loading ? (
                                     <>
-                                        <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                                        Generating...
+                                        <span className="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
+                                        GENERATING...
                                     </>
-                                ) : 'Generate Report'}
+                                ) : 'GENERATE'}
                             </button>
                             {result && (
                                 <button
                                     onClick={() => printReport(result, columns)}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                    className="w-full bg-obsidian-700 hover:bg-obsidian-600 hover:text-industrial-50 text-industrial-300 border border-obsidian-600 font-bold text-[10px] uppercase tracking-widest py-2 px-4 rounded transition-colors flex items-center justify-center gap-2"
                                 >
-                                    Print
+                                    PRINT
                                 </button>
                             )}
                         </div>
@@ -475,11 +475,11 @@ export function Reports() {
                     {/* Action bar */}
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-800">{getReportTitle(result.type)}</h3>
-                            <p className="text-xs text-gray-400">
-                                Generated {new Date(result.generatedAt).toLocaleString()}
+                            <h3 className="text-xl font-bold text-industrial-50 mb-1">{getReportTitle(result.type)}</h3>
+                            <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest font-mono">
+                                GENERATED {new Date(result.generatedAt).toLocaleString()}
                                 {result.dateRange && ` · ${formatDate(result.dateRange.from)} – ${formatDate(result.dateRange.to)}`}
-                                {result.daysAhead && ` · Next ${result.daysAhead} days`}
+                                {result.daysAhead && ` · NEXT ${result.daysAhead} DAYS`}
                             </p>
                         </div>
 
@@ -491,27 +491,27 @@ export function Reports() {
                     {/* Data table */}
                     {result.type !== 'summary' && (
                         result.data.length === 0 ? (
-                            <div className="text-center py-12 text-gray-400">
-                                <p>No data found for the selected period.</p>
+                            <div className="text-center py-12 border border-obsidian-700 border-dashed rounded mt-4">
+                                <p className="text-industrial-500 font-mono text-[10px] font-bold uppercase tracking-widest">[ SYSTEM: NO DATA FOUND FOR THIS PERIOD ]</p>
                             </div>
                         ) : (
-                            <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
-                                            <tr className="bg-gray-50 border-b">
+                                            <tr className="bg-obsidian-900 border-b border-obsidian-700">
                                                 {columns.map(col => (
-                                                    <th key={col.key} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 whitespace-nowrap">
+                                                    <th key={col.key} className="text-left font-bold text-[10px] text-industrial-400 uppercase tracking-widest px-4 py-3 whitespace-nowrap">
                                                         {col.label}
                                                     </th>
                                                 ))}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-obsidian-700/50">
                                             {result.data.map((row, i) => (
-                                                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                                <tr key={i} className="hover:bg-obsidian-700/30 transition-colors">
                                                     {columns.map(col => (
-                                                        <td key={col.key} className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
+                                                        <td key={col.key} className="px-4 py-3 text-industrial-50 whitespace-nowrap">
                                                             {col.format ? col.format(row[col.key]) : (row[col.key] ?? '—')}
                                                         </td>
                                                     ))}
@@ -519,9 +519,9 @@ export function Reports() {
                                             ))}
                                         </tbody>
                                         <tfoot>
-                                            <tr className="bg-gray-50 border-t">
-                                                <td className="px-4 py-2 text-xs font-semibold text-gray-500" colSpan={columns.length}>
-                                                    {result.data.length} record{result.data.length !== 1 ? 's' : ''}
+                                            <tr className="bg-obsidian-900 border-t border-obsidian-700">
+                                                <td className="px-4 py-2 font-bold text-[10px] text-industrial-400 uppercase tracking-widest" colSpan={columns.length}>
+                                                    [ {result.data.length} RECORD{result.data.length !== 1 ? 'S' : ''} EXPORTED ]
                                                 </td>
                                             </tr>
                                         </tfoot>
@@ -535,8 +535,8 @@ export function Reports() {
 
             {/* Empty state */}
             {!result && !loading && (
-                <div className="text-center py-16">
-                    <p className="text-lg text-gray-400">Select a report type and click <strong>Generate Report</strong></p>
+                <div className="text-center py-16 border border-obsidian-700 border-dashed rounded">
+                    <p className="text-[10px] text-industrial-500 font-bold uppercase tracking-widest font-mono">[ SYSTEM: SELECT A TYPE TO GENERATE ]</p>
                 </div>
             )}
         </div>

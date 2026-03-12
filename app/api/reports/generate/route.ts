@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
 
             const totalRevenue = payments.reduce((sum: number, p: any) => sum + p.amount, 0);
             const totalExpenses = expenses.reduce((sum: number, e: any) => sum + e.amount, 0);
-            const netProfit = totalRevenue - totalExpenses;
+            const netProfit = Math.round(((totalRevenue - totalExpenses) + Number.EPSILON) * 100) / 100;
 
             // Revenue by payment type
             const revenueByType: Record<string, number> = {};

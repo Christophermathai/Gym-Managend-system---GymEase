@@ -92,10 +92,10 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
+      <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
           <div className="flex justify-center items-center min-h-[300px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-electric-500"></div>
           </div>
         </div>
       </div>
@@ -104,14 +104,14 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
 
   if (!member) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
-          <p className="text-red-600">Member not found</p>
+      <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl text-center">
+          <p className="text-red-500 font-bold uppercase tracking-widest text-sm mb-4">[ MEMBER NOT FOUND ]</p>
           <button
             onClick={onClose}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 transition-colors"
           >
-            Close
+            CLOSE
           </button>
         </div>
       </div>
@@ -123,195 +123,207 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
     : null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Member Details</h2>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-obsidian-700 shrink-0">
+          <h2 className="text-2xl font-bold text-industrial-50 uppercase tracking-wide">Member Details</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-industrial-400 hover:text-industrial-50 transition-colors"
           >
-            ✕
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
 
-        {/* Member Info Card */}
-        <div className="bg-blue-50 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Name</p>
-              <p className="text-2xl font-bold text-gray-900 first-letter:uppercase lowercase">{member.name}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Phone</p>
-              <p className="text-2xl font-bold text-gray-900">{member.phone}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Email</p>
-              <p className="text-lg text-gray-900">{member.email || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Gender</p>
-              <p className="text-lg capitalize text-gray-900">{member.gender || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Blood Group</p>
-              <p className="text-lg text-gray-900">{member.blood_group || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Status</p>
-              <p className={`text-lg font-semibold ${member.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                {member.is_active ? 'Active' : 'Inactive'}
-              </p>
-            </div>
-          </div>
-          {member.address && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-600">Address</p>
-              <p className="text-gray-900">{member.address}</p>
-            </div>
-          )}
-          {member.medical_notes && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-600">Medical Notes</p>
-              <p className="text-gray-900">{member.medical_notes}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Fee Plan Card */}
-        {subscription ? (
-          <div className="bg-purple-50 rounded-lg p-6 border-l-4 border-purple-500">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Fee Plan</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Plan Name</p>
-                <p className="text-2xl font-bold text-purple-600">{subscription.plan_name}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0">
+          {/* Left Column: Details & Subscription */}
+          <div className="space-y-6 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
+            {/* Member Info Card */}
+            <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-electric-500 relative shrink-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Name</p>
+                  <p className="text-xl font-bold text-industrial-50 uppercase">{member.name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Phone</p>
+                  <p className="text-lg font-mono text-industrial-300">{member.phone}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Email</p>
+                  <p className="text-sm font-mono text-industrial-300">{member.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Gender</p>
+                  <p className="text-sm text-industrial-50 uppercase tracking-wider">{member.gender || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Blood Group</p>
+                  <p className="text-sm text-industrial-50 uppercase font-mono">{member.blood_group || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Status</p>
+                  <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${member.is_active ? 'bg-electric-500/10 border-electric-500/30 text-electric-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                    {member.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Monthly Fee</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(subscription.monthly_fee)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Duration</p>
-                <p className="text-lg text-gray-900">{subscription.duration} Months</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className={`text-lg font-semibold capitalize ${subscription.status === 'active' ? 'text-green-600' :
-                  subscription.status === 'expiring_soon' ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                  {subscription.status}
-                </p>
-              </div>
+              {member.address && (
+                <div className="mt-6 pt-4 border-t border-obsidian-700/50">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Address</p>
+                  <p className="text-sm text-industrial-300">{member.address}</p>
+                </div>
+              )}
+              {member.medical_notes && (
+                <div className="mt-4">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Medical Notes</p>
+                  <p className="text-sm text-industrial-300">{member.medical_notes}</p>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Start Date</p>
-                <p className="text-lg text-gray-900">{formatDate(subscription.start_date)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">End Date</p>
-                <p className="text-lg text-gray-900">{formatDate(subscription.end_date)}</p>
-              </div>
-            </div>
+            {/* Fee Plan Card */}
+            {subscription ? (
+              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-steelgold-500 shrink-0">
+                <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Fee Plan Subscription</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Plan Name</p>
+                    <p className="text-lg font-bold text-steelgold-500 uppercase">{subscription.plan_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Monthly Fee</p>
+                    <p className="text-lg font-mono font-bold text-industrial-50">{formatCurrency(subscription.monthly_fee)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Duration</p>
+                    <p className="text-sm font-mono text-industrial-300">{subscription.duration} MONTHS</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Status</p>
+                    <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${subscription.status === 'active' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
+                      subscription.status === 'expiring_soon' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
+                        'bg-red-500/10 border-red-500/30 text-red-500'
+                      }`}>
+                      {subscription.status}
+                    </span>
+                  </div>
+                </div>
 
-            {daysRemaining !== null && (
-              <div className="mt-6 p-4 rounded-lg bg-white">
-                <p className="text-sm font-medium text-gray-600">Days Remaining</p>
-                <p className={`text-3xl font-bold ${daysRemaining > 30 ? 'text-green-600' :
-                  daysRemaining > 0 ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                  {daysRemaining > 0 ? daysRemaining : 'Expired'}
-                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-4 border-t border-obsidian-700/50">
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Start Date</p>
+                    <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.start_date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">End Date</p>
+                    <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.end_date)}</p>
+                  </div>
+                </div>
+
+                {daysRemaining !== null && (
+                  <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600 flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Days Remaining</p>
+                    <p className={`text-xl font-mono font-bold ${daysRemaining > 30 ? 'text-green-500' :
+                      daysRemaining > 0 ? 'text-steelgold-500' :
+                        'text-red-500'
+                      }`}>
+                      {daysRemaining > 0 ? daysRemaining : 'EXPIRED'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-red-500 shrink-0">
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">[ NO ACTIVE FEE PLAN ]</p>
               </div>
             )}
           </div>
-        ) : (
-          <div className="bg-yellow-50 rounded-lg p-6 border-l-4 border-yellow-500">
-            <p className="text-yellow-800 font-semibold">No active fee plan</p>
-          </div>
-        )}
 
-        {/* Payments Section */}
-        <div className="mt-6 bg-green-50 rounded-lg p-6 border-l-4 border-green-500">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Payment History</h3>
+          {/* Right Column: Payments */}
+          <div className="flex flex-col h-[600px] lg:h-auto">
+            {/* Payments Section */}
+            <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-green-500 flex-1 flex flex-col h-full min-h-0">
+              <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Payment History</h3>
 
-          {payments && payments.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-green-100">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Date</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Amount</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Type</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Mode</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Transaction ID</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((payment) => (
-                    <tr key={payment.id} className="border-b hover:bg-green-100 transition-colors">
-                      <td className="py-3 px-4">{formatDate(payment.payment_date)}</td>
-                      <td className="py-3 px-4 font-semibold text-green-600">{formatCurrency(payment.amount)}</td>
-                      <td className="py-3 px-4 capitalize">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
-                          {payment.payment_type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 capitalize">
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-semibold">
-                          {payment.payment_mode}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600 text-xs">{payment.transaction_id || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-600">{payment.notes || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Payment Summary */}
-              <div className="mt-4 pt-4 border-t-2 border-green-300">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Payments</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
-                    </p>
+              {payments && payments.length > 0 ? (
+                <div className="flex flex-col h-full">
+                  <div className="overflow-x-auto overflow-y-auto border border-obsidian-600 rounded flex-1 custom-scrollbar">
+                    <table className="w-full text-sm">
+                      <thead className="bg-obsidian-900 border-b border-obsidian-600 sticky top-0 z-10">
+                        <tr>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Date</th>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Amount</th>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Type</th>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Mode</th>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Txn ID</th>
+                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-obsidian-700/50">
+                        {payments.map((payment) => (
+                          <tr key={payment.id} className="hover:bg-obsidian-700/30 transition-colors">
+                            <td className="py-3 px-4 font-mono text-xs text-industrial-300">{formatDate(payment.payment_date)}</td>
+                            <td className="py-3 px-4 font-mono font-bold text-green-500">{formatCurrency(payment.amount)}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
+                                {payment.payment_type}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
+                                {payment.payment_mode}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-industrial-400 text-xs font-mono">{payment.transaction_id || '-'}</td>
+                            <td className="py-3 px-4 text-industrial-400 text-xs">{payment.notes || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Number of Payments</p>
-                    <p className="text-2xl font-bold text-gray-900">{payments.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Last Payment</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {formatDate(payments[0]?.payment_date)}
-                    </p>
+
+                  {/* Payment Summary */}
+                  <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Total</p>
+                        <p className="text-2xl font-mono font-bold text-green-500">
+                          {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Payments</p>
+                        <p className="text-2xl font-mono font-bold text-industrial-50">{payments.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Latest</p>
+                        <p className="text-lg font-mono text-industrial-300">
+                          {formatDate(payments[0]?.payment_date)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest font-mono">[ NO PAYMENTS RECORDED YET ]</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-600 font-semibold">No payments recorded yet</p>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
-        >
-          Close
-        </button>
+        <div className="mt-8 flex justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="px-8 py-3 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 hover:border-industrial-400 transition-colors"
+          >
+            CLOSE DETAILS
+          </button>
+        </div>
       </div>
     </div>
   );

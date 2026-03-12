@@ -93,28 +93,28 @@ export function AddUtilityModal({ isOpen, onClose, onSuccess }: AddUtilityModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-120 overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Record Utility/Expense</h3>
+    <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 w-full max-w-md max-h-120 overflow-y-auto shadow-2xl">
+        <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">Record Utility/Expense</h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium">Description *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Description *</label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
               placeholder="e.g., Monthly electricity bill"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Category *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Category *</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
             >
               <option value="utilities">Utilities</option>
               <option value="rent">Rent</option>
@@ -126,23 +126,23 @@ export function AddUtilityModal({ isOpen, onClose, onSuccess }: AddUtilityModalP
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Amount *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Amount *</label>
             <input
               type="number"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-              placeholder="Amount"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono"
+              placeholder="0.00"
               step="0.01"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Payment Mode *</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Payment Mode *</label>
             <select
               value={formData.paymentMode}
               onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
             >
               <option value="cash">Cash</option>
               <option value="card">Card</option>
@@ -153,31 +153,39 @@ export function AddUtilityModal({ isOpen, onClose, onSuccess }: AddUtilityModalP
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Notes</label>
+            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none resize-none"
               placeholder="Additional notes"
               rows={2}
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end space-x-2">
+        <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
+            className="px-6 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 transition-colors focus:ring-2 focus:ring-obsidian-500"
             disabled={loading}
           >
-            Cancel
+            CANCEL
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50"
+            className="px-6 py-2 bg-electric-500 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-electric-600 transition-colors disabled:opacity-50 flex items-center gap-2 focus:ring-2 focus:ring-electric-500 focus:ring-offset-2 focus:ring-offset-obsidian-900 shadow-lg shadow-electric-500/20"
             disabled={loading}
           >
-            {loading ? 'Recording...' : 'Record Utility'}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                RECORDING...
+              </>
+            ) : 'RECORD UTILITY'}
           </button>
         </div>
       </div>

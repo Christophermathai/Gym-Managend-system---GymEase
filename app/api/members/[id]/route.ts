@@ -80,12 +80,8 @@ export async function PATCH(request: NextRequest) {
     if (updateData.name) updateFields.name = updateData.name;
     if (updateData.phone) updateFields.phone = updateData.phone;
     if (updateData.email !== undefined) updateFields.email = updateData.email;
-    if (updateData.secondaryPhone !== undefined) updateFields.secondary_phone = updateData.secondaryPhone;
-    if (updateData.dateOfBirth !== undefined) updateFields.date_of_birth = updateData.dateOfBirth;
     if (updateData.gender !== undefined) updateFields.gender = updateData.gender;
-    if (updateData.address !== undefined) updateFields.address = updateData.address;
     if (updateData.bloodGroup !== undefined) updateFields.blood_group = updateData.bloodGroup;
-    if (updateData.medicalNotes !== undefined) updateFields.medical_notes = updateData.medicalNotes;
     if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive;
 
     let updateQuery = 'UPDATE members SET ';

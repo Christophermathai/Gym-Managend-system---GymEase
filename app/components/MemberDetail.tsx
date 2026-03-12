@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
 import { formatDate, formatCurrency } from '@/app/lib/utils';
+import LottieLoader from './LottieLoader';
 
 interface MemberDetailProps {
   memberId: string;
@@ -16,9 +18,7 @@ interface Member {
   phone: string;
   email?: string;
   gender?: string;
-  address?: string;
   blood_group?: string;
-  medical_notes?: string;
   is_active: boolean;
   created_at: number;
 }
@@ -95,7 +95,9 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
       <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
         <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
           <div className="flex justify-center items-center min-h-[300px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-electric-500"></div>
+            <AnimatePresence>
+              <LottieLoader size={130} key="member-detail-loader" />
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -124,7 +126,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
 
   return (
     <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-7xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-obsidian-700 shrink-0">
           <h2 className="text-2xl font-bold text-industrial-50 uppercase tracking-wide">Member Details</h2>
@@ -136,7 +138,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8 flex-1 min-h-0">
           {/* Left Column: Details & Subscription */}
           <div className="space-y-6 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
             {/* Member Info Card */}
@@ -169,18 +171,6 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
                   </span>
                 </div>
               </div>
-              {member.address && (
-                <div className="mt-6 pt-4 border-t border-obsidian-700/50">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Address</p>
-                  <p className="text-sm text-industrial-300">{member.address}</p>
-                </div>
-              )}
-              {member.medical_notes && (
-                <div className="mt-4">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Medical Notes</p>
-                  <p className="text-sm text-industrial-300">{member.medical_notes}</p>
-                </div>
-              )}
             </div>
 
             {/* Fee Plan Card */}

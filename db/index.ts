@@ -1,11 +1,11 @@
 import path from 'path';
-import type Database from 'better-sqlite3';
+import 'better-sqlite3';
 
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'gym_ease.db');
 
-let dbInstance: Database.Database | null = null;
+let dbInstance: any | null = null;
 
-export async function initializeDatabase(): Promise<Database.Database> {
+export async function initializeDatabase(): Promise<any> {
   let BetterSqlite3;
   try {
     BetterSqlite3 = require('better-sqlite3');
@@ -23,10 +23,40 @@ export async function initializeDatabase(): Promise<Database.Database> {
   // Create tables
   createTables(db);
 
+  // Create indexes
+  createIndexes(db);
+
   return db;
 }
 
-function createTables(db: Database.Database) {
+function createIndexes(db: any) {
+  // Members indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_members_active_created ON members(is_active, created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_members_phone ON members(phone)`);
+
+  // Subscriptions indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_subscriptions_member_id ON subscriptions(member_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_subscriptions_status_expiry ON subscriptions(status, end_date)`);
+
+  // Payments indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_payments_member_id ON payments(member_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_payments_status_date ON payments(status, payment_date)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_payments_receipt ON payments(receipt_no)`);
+
+  // Leads indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_assigned_status ON leads(assigned_to, status)`);
+
+  // Expenses indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_category_date ON expenses(category, expense_date)`);
+
+  // Audit Log indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id)`);
+}
+
+function createTables(db: any) {
   // Users table
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -79,12 +109,8 @@ function createTables(db: Database.Database) {
       name TEXT NOT NULL,
       email TEXT,
       phone TEXT NOT NULL UNIQUE,
-      secondary_phone TEXT,
-      date_of_birth INTEGER,
       gender TEXT CHECK(gender IN ('male', 'female', 'other')),
-      address TEXT,
       blood_group TEXT,
-      medical_notes TEXT,
       admission_date INTEGER NOT NULL,
       is_active BOOLEAN DEFAULT TRUE,
       created_by TEXT NOT NULL,
@@ -333,14 +359,14 @@ function createTables(db: Database.Database) {
   }
 }
 
-export async function getDatabase(): Promise<Database.Database> {
+export async function getDatabase(): Promise<any> {
   if (!dbInstance) {
     dbInstance = await initializeDatabase();
   }
   return dbInstance;
 }
 
-export function runAsync(db: Database.Database, sql: string, params: any[] = []): Promise<{ lastID?: number; changes?: number }> {
+export function runAsync(db: any, sql: string, params: any[] = []): Promise<{ lastID?: number; changes?: number }> {
   return Promise.resolve().then(() => {
     const stmt = db.prepare(sql);
     const info = stmt.run(...params);
@@ -348,14 +374,14 @@ export function runAsync(db: Database.Database, sql: string, params: any[] = [])
   });
 }
 
-export function getAsync(db: Database.Database, sql: string, params: any[] = []): Promise<any> {
+export function getAsync(db: any, sql: string, params: any[] = []): Promise<any> {
   return Promise.resolve().then(() => {
     const stmt = db.prepare(sql);
     return stmt.get(...params);
   });
 }
 
-export function allAsync(db: Database.Database, sql: string, params: any[] = []): Promise<any[]> {
+export function allAsync(db: any, sql: string, params: any[] = []): Promise<any[]> {
   return Promise.resolve().then(() => {
     const stmt = db.prepare(sql);
     return stmt.all(...params);

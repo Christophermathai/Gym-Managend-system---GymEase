@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Edit2, Check, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { AnimatePresence } from 'framer-motion';
 import { formatDate, formatCurrency } from '../lib/utils';
+import LottieLoader from './LottieLoader';
 
 interface Payment {
   id: number;
@@ -152,7 +154,9 @@ export function PaymentView() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+        <AnimatePresence>
+          <LottieLoader size={130} key="payment-loader" />
+        </AnimatePresence>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, Variants } from 'framer-motion';
+import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useModals } from './ModalContext';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { formatCurrency, formatDate } from '@/app/lib/utils';
 import { MemberManagement } from './MemberManagement';
 import { PaymentChart } from './charts/PaymentChart';
+import LottieLoader from './LottieLoader';
 
 interface DashboardData {
   overview: {
@@ -182,8 +183,10 @@ export function TrainerDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+      <div className="fixed inset-0 bg-obsidian-900 flex items-center justify-center z-[60]">
+        <AnimatePresence>
+          <LottieLoader size={130} key="trainer-main-loader" />
+        </AnimatePresence>
       </div>
     );
   }
@@ -438,11 +441,14 @@ export function TrainerDashboard() {
                 </div>
               </div>
 
-              {leadsLoading ? (
-                <div className="flex justify-center items-center min-h-[200px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                </div>
-              ) : leads && leads.length > 0 ? (
+              <AnimatePresence mode="wait">
+                {leadsLoading && (
+                  <div className="flex justify-center items-center min-h-[200px]">
+                    <LottieLoader size={130} key="leads-loader" />
+                  </div>
+                )}
+              </AnimatePresence>
+              {!leadsLoading && leads && leads.length > 0 ? (
                 <div className="overflow-x-auto border border-obsidian-700 rounded">
                   <table className="w-full text-sm">
                     <thead className="bg-obsidian-900 border-b border-obsidian-700">
@@ -526,7 +532,7 @@ export function TrainerDashboard() {
             </div>
             {expensesLoading ? (
               <div className="flex justify-center items-center min-h-[200px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <LottieLoader size={130} />
               </div>
             ) : expenses && expenses.length > 0 ? (
               <div className="overflow-x-auto border border-obsidian-700 rounded">

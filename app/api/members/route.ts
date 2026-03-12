@@ -94,26 +94,16 @@ export async function POST(request: NextRequest) {
       name,
       phone,
       email,
-      secondaryPhone,
-      secondary_phone,
-      dateOfBirth,
-      date_of_birth,
       gender,
-      address,
       bloodGroup,
       blood_group,
-      medicalNotes,
-      medical_notes,
       feePlanId,
       fee_plan_id,
       admissionDate,
       admission_date,
     } = body;
 
-    const finalSecondaryPhone = secondaryPhone || secondary_phone;
-    const finalDateOfBirth = dateOfBirth || date_of_birth;
     const finalBloodGroup = bloodGroup || blood_group;
-    const finalMedicalNotes = medicalNotes || medical_notes;
     const finalFeePlanId = feePlanId || fee_plan_id;
     const finalAdmissionDate = admissionDate || admission_date;
 
@@ -148,9 +138,9 @@ export async function POST(request: NextRequest) {
     // Create member
     await runAsync(
       db,
-      `INSERT INTO members (id, member_id, name, email, phone, secondary_phone, date_of_birth, gender, address, blood_group, medical_notes, admission_date, is_active, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [memberDocId, memberId, name, email || null, phone, finalSecondaryPhone || null, finalDateOfBirth || null, gender || null, address || null, finalBloodGroup || null, finalMedicalNotes || null, finalAdmissionDate, 1, userId]
+      `INSERT INTO members (id, member_id, name, email, phone, gender, blood_group, admission_date, is_active, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [memberDocId, memberId, name, email || null, phone, gender || null, finalBloodGroup || null, finalAdmissionDate, 1, userId]
     );
 
     let subscriptionId = null;

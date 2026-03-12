@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
+import LottieLoader from './LottieLoader';
 
 interface Lead {
   id: string;
@@ -96,7 +98,9 @@ export function LeadManagement() {
 
   if (loading) return (
     <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+      <AnimatePresence>
+        <LottieLoader size={130} key="lead-loader" />
+      </AnimatePresence>
     </div>
   );
 
@@ -154,8 +158,8 @@ export function LeadManagement() {
                   <td className="px-4 py-3 capitalize text-industrial-300">{lead.source}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 border text-[10px] font-bold uppercase tracking-wider rounded-[2px] ${lead.interest_level === 'hot' ? 'bg-red-500/10 border-red-500/30 text-red-500' :
-                        lead.interest_level === 'warm' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
-                          'bg-electric-500/10 border-electric-500/30 text-electric-500'
+                      lead.interest_level === 'warm' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
+                        'bg-electric-500/10 border-electric-500/30 text-electric-500'
                       }`}>
                       {lead.interest_level}
                     </span>

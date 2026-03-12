@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/app/lib/utils';
+import LottieLoader from './LottieLoader';
 
 interface FeePlan {
   id: string;
@@ -134,7 +135,7 @@ export function FeePlanManagement() {
 
   if (loading) return (
     <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+      <LottieLoader size={130} />
     </div>
   );
 

@@ -1,11 +1,12 @@
 'use client';
 
-import { motion, Variants } from 'framer-motion';
+import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useModals } from './ModalContext';
 import { formatCurrency, formatDate } from '@/app/lib/utils';
 import { PaymentChart } from './charts/PaymentChart';
+import LottieLoader from './LottieLoader';
 
 interface Overview {
   totalActiveMembers: number;
@@ -90,7 +91,9 @@ export function OwnerDashboard({ onViewUnpaidMembers, onViewPartialMembers }: Ow
   if (loading || !dashboardData) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <AnimatePresence>
+          <LottieLoader size={130} key="owner-loader" />
+        </AnimatePresence>
       </div>
     );
   }

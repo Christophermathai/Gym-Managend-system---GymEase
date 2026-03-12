@@ -46,9 +46,9 @@ export async function POST(request: NextRequest) {
                 await runAsync(
                     db,
                     `INSERT INTO members (
-            id, member_id, name, email, phone, gender, address, 
-            blood_group, medical_notes, admission_date, is_active, created_by, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            id, member_id, name, email, phone, gender, 
+            blood_group, admission_date, is_active, created_by, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
                     [
                         memberId,
                         displayMemberId,
@@ -56,9 +56,7 @@ export async function POST(request: NextRequest) {
                         member.email || null,
                         member.phone,
                         member.gender || 'other',
-                        member.address || null,
                         member.bloodGroup || null,
-                        null,
                         Date.now(),
                         1,
                         userId

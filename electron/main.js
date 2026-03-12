@@ -6,277 +6,310 @@ const http = require('http');
 
 let mainWindow;
 let nextServerProcess;
-let isShuttingDown = false; // Flag to track intentional shutdown
+let isShuttingDown = false;
 
-// Store DB in AppData so it persists after updates/reinstalls
-const userDataPath = app.getPath('userData');
-const dbPath = path.join(userDataPath, 'gym_ease.db');
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock();
 
-// Ensure DB file exists (copy default if new install)
-function ensureDatabase() {
-    if (!fs.existsSync(dbPath)) {
-        console.log('Database not found in AppData, checking for template...');
-        // In production, you might bundle a template.db
-        // For now, Next.js init logic will create it empty if it doesn't exist
-    }
-    console.log('Database Path:', dbPath);
-}
+if (!gotTheLock) {
+    app.quit();
+    process.exit(0);
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
 
-// Backup interval reference
-let backupInterval = null;
-
-// Backup database to Documents folder
-function backupDatabase() {
-    try {
-        if (!fs.existsSync(dbPath)) return;
-
-        const documentsPath = app.getPath('documents');
-        const backupDir = path.join(documentsPath, 'GymEase_Backups');
-        fs.mkdirSync(backupDir, { recursive: true });
-
-        const backupPath = path.join(
-            backupDir,
-            `gym_ease_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.db`
-        );
-
-        try {
-            const fd = fs.openSync(dbPath, 'r');
-            fs.closeSync(fd);
-
-            fs.copyFileSync(dbPath, backupPath);
-            console.log('Database backed up:', backupPath);
-        } catch {
-            console.log('Database busy, skipping this backup cycle');
+            dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Gym Ease Terminal',
+                message: 'Gym Ease is already running.',
+                detail: 'The existing session has been brought to focus for you. Have a productive workout!',
+                buttons: ['OK']
+            });
         }
-    } catch (err) {
-        console.error('Backup failed:', err);
+    });
+
+    // Store DB in AppData so it persists after updates/reinstalls
+    const userDataPath = app.getPath('userData');
+    const dbPath = path.join(userDataPath, 'gym_ease.db');
+
+    // Ensure DB file exists (copy default if new install)
+    function ensureDatabase() {
+        if (!fs.existsSync(dbPath)) {
+            console.log('Database not found in AppData, checking for template...');
+        }
+        console.log('Database Path:', dbPath);
     }
-}
 
-// Start automatic backup every 30 minutes
-function startAutoBackup() {
-    // Initial backup
-    backupDatabase();
+    // Backup interval reference
+    let backupInterval = null;
 
-    // Set interval for 30 minutes (30 * 60 * 1000 ms)
-    backupInterval = setInterval(() => {
-        backupDatabase();
-    }, 30 * 60 * 1000);
+    // Backup database to Documents folder
+    function backupDatabase() {
+        try {
+            if (!fs.existsSync(dbPath)) return;
 
-    console.log('Automatic backup started (every 30 minutes)');
-}
+            const documentsPath = app.getPath('documents');
+            const backupDir = path.join(documentsPath, 'GymEase_Backups');
+            fs.mkdirSync(backupDir, { recursive: true });
 
-// Stop automatic backup
-function stopAutoBackup() {
-    if (backupInterval) {
-        clearInterval(backupInterval);
-        backupInterval = null;
-        console.log('Automatic backup stopped');
-    }
-}
+            const backupPath = path.join(
+                backupDir,
+                `gym_ease_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.db`
+            );
 
-const startNextServer = () => {
-    return new Promise((resolve, reject) => {
-        // We launch next dev for simple wrapper or node server.js for prod
-        // Getting a free port is better but let's stick to 3000 for simplicity first or find a free one
-        const port = 3000;
-
-        // In production (bundled), we need to run the built next app
-        // In dev, we can rely on manual start or spawn it.
-
-        // Check if server is already running
-        const req = http.get(`http://localhost:${port}`, (res) => {
-            resolve(port);
-        });
-
-        req.on('error', (err) => {
-            // Server not running, let's spawn it
-            console.log('Starting Next.js server...');
-
-            const isDev = !app.isPackaged;
-
-            let cmd, args;
-
-            if (isDev) {
-                cmd = 'node';
-                args = ['node_modules/next/dist/bin/next', 'dev'];
-            } else {
-                // Production: run standalone server
-                // This expects the .next/standalone folder to be copied into resources
-                const serverPath = path.join(process.resourcesPath, 'standalone', 'server.js');
-                cmd = 'node';
-                args = [serverPath];
+            try {
+                const fd = fs.openSync(dbPath, 'r');
+                fs.closeSync(fd);
+                fs.copyFileSync(dbPath, backupPath);
+                console.log('Database backed up:', backupPath);
+            } catch {
+                console.log('Database busy, skipping this backup cycle');
             }
+        } catch (err) {
+            console.error('Backup failed:', err);
+        }
+    }
 
-            // Pass the DB_PATH and JWT_SECRET to the Next.js process
-            const env = {
-                ...process.env,
-                DB_PATH: dbPath,
-                PORT: port,
-                JWT_SECRET: 'gym-ease-production-secret-key-change-it'
-            };
+    // Start automatic backup every 30 minutes
+    function startAutoBackup() {
+        backupDatabase();
+        backupInterval = setInterval(() => {
+            backupDatabase();
+        }, 30 * 60 * 1000);
+        console.log('Automatic backup started (every 30 minutes)');
+    }
 
-            nextServerProcess = spawn(cmd, args, {
-                cwd: isDev ? process.cwd() : path.join(process.resourcesPath, 'standalone'),
-                env,
-                shell: false,
-                detached: true
-            });
-            nextServerProcess.unref();
-            nextServerProcess.stdout.on('data', (data) => {
-                console.log(`Next.js: ${data}`);
-                if (data.toString().includes('Ready in') || data.toString().includes('started server on')) {
-                    setTimeout(() => resolve(port), 1000); // Give it a sec
-                }
-            });
+    // Stop automatic backup
+    function stopAutoBackup() {
+        if (backupInterval) {
+            clearInterval(backupInterval);
+            backupInterval = null;
+            console.log('Automatic backup stopped');
+        }
+    }
 
-            nextServerProcess.stderr.on('data', (data) => {
-                console.error(`Next.js Error: ${data}`);
-                const msg = data.toString();
-                if (msg.includes('Error:') || msg.includes('MODULE_NOT_FOUND') || msg.includes('dependency missing')) {
-                    dialog.showErrorBox('Backend Error', msg);
-                }
-            });
+    // ✅ FIX 1: Kill any process occupying the port before starting
+    function clearPort(port) {
+        if (process.platform === 'win32') {
+            try {
+                execSync(
+                    `for /f "tokens=5" %a in ('netstat -aon ^| find ":${port}"') do taskkill /PID %a /F`,
+                    { stdio: 'ignore', shell: true }
+                );
+                console.log(`Cleared port ${port}`);
+            } catch (e) {
+                // No process on port, that's fine
+            }
+        } else {
+            try {
+                execSync(`lsof -ti:${port} | xargs kill -9`, { stdio: 'ignore', shell: true });
+                console.log(`Cleared port ${port}`);
+            } catch (e) {
+                // No process on port, that's fine
+            }
+        }
+    }
 
-            nextServerProcess.on('close', (code) => {
-                // Only show error if not intentionally shutting down
-                if (!isShuttingDown && code !== 0 && code !== null) {
-                    dialog.showErrorBox('Server Crashed', `Next.js process exited with code ${code}.\nPlease check the 'Backend Error' dialog for details.`);
-                }
-            });
+    const startNextServer = () => {
+        return new Promise((resolve, reject) => {
+            const port = 3000;
 
-            // Fallback resolve after timeout if stdout detection is flaky
-            setTimeout(() => resolve(port), 5000);
+            // ✅ FIX 1: Clear port before starting
+            clearPort(port);
+
+            // Small delay after clearing port to ensure it's fully released
+            setTimeout(() => {
+
+                // ✅ FIX 3: Check if server is already running after port clear
+                const req = http.get(`http://localhost:${port}`, (res) => {
+                    console.log('Server already running, reusing.');
+                    resolve(port);
+                });
+
+                req.on('error', () => {
+                    // Port is truly free now, start fresh
+                    console.log('Starting Next.js server...');
+
+                    const isDev = !app.isPackaged;
+
+                    let cmd, args;
+
+                    if (isDev) {
+                        cmd = 'node';
+                        args = ['node_modules/next/dist/bin/next', 'dev'];
+                    } else {
+                        const serverPath = path.join(process.resourcesPath, 'standalone', 'server.js');
+                        cmd = 'node';
+                        args = [serverPath];
+                    }
+
+                    const env = {
+                        ...process.env,
+                        DB_PATH: dbPath,
+                        PORT: port,
+                        JWT_SECRET: 'gym-ease-production-secret-key-change-it'
+                    };
+
+                    // ✅ FIX: detached false keeps process tied to Electron
+                    nextServerProcess = spawn(cmd, args, {
+                        cwd: isDev ? process.cwd() : path.join(process.resourcesPath, 'standalone'),
+                        env,
+                        shell: false,
+                        detached: false, // ✅ Changed from true to false
+                    });
+                    // ✅ Removed unref()
+
+                    nextServerProcess.stdout.on('data', (data) => {
+                        console.log(`Next.js: ${data}`);
+                        if (data.toString().includes('Ready in') || data.toString().includes('started server on')) {
+                            setTimeout(() => resolve(port), 1000);
+                        }
+                    });
+
+                    // ✅ FIX 2: Properly suppress non-critical errors with early return
+                    nextServerProcess.stderr.on('data', (data) => {
+                        const msg = data.toString();
+                        console.error(`Next.js Error: ${msg}`);
+
+                        // Early return for harmless errors — never reach dialog
+                        if (
+                            msg.includes('EADDRINUSE') ||
+                            msg.includes('ExperimentalWarning') ||
+                            msg.includes('DeprecationWarning') ||
+                            msg.includes('punycode')
+                        ) {
+                            console.log('Suppressed non-critical error:', msg.trim());
+                            return; // ✅ Stop here
+                        }
+
+                        // Only show dialog for real fatal errors
+                        if (
+                            msg.includes('MODULE_NOT_FOUND') ||
+                            msg.includes('dependency missing') ||
+                            msg.includes('Cannot find module')
+                        ) {
+                            dialog.showErrorBox('Backend Error', msg);
+                        }
+                    });
+
+                    nextServerProcess.on('close', (code) => {
+                        if (!isShuttingDown && code !== 0 && code !== null) {
+                            dialog.showErrorBox(
+                                'Server Stopped',
+                                `Next.js process exited with code ${code}.\nIf Gym Ease is already open, please use the existing window.`
+                            );
+                        }
+                    });
+
+                    // Fallback resolve after timeout
+                    setTimeout(() => resolve(port), 5000);
+                });
+
+            }, 300); // ✅ 300ms delay after port clear to ensure full release
+        });
+    };
+
+    function killNextServer() {
+        if (!nextServerProcess || nextServerProcess.killed) return;
+
+        console.log('Force killing Next.js server...');
+
+        if (process.platform === 'win32') {
+            // Primary: kill by PID tree
+            try {
+                execSync(`taskkill /PID ${nextServerProcess.pid} /T /F`, { stdio: 'ignore' });
+            } catch (e) {
+                console.error('Taskkill by PID failed:', e.message);
+            }
+            // ✅ Backup: kill by port in case PID is stale
+            try {
+                execSync(
+                    `for /f "tokens=5" %a in ('netstat -aon ^| find ":3000"') do taskkill /PID %a /F`,
+                    { stdio: 'ignore', shell: true }
+                );
+            } catch (e) {
+                // Silently ignore if no process found on port
+            }
+        } else {
+            try {
+                process.kill(-nextServerProcess.pid, 'SIGKILL');
+            } catch (e) { }
+        }
+
+        nextServerProcess = null;
+    }
+
+    // ✅ FIX: 500ms delay ensures Next.js is fully dead before installer takes over
+    function fastQuit() {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        console.log('Fast-quitting Gym Ease...');
+        stopAutoBackup();
+        killNextServer();
+        setTimeout(() => {
+            app.exit(0);
+        }, 500); // ✅ Give process time to die
+    }
+
+    function createWindow(port) {
+        mainWindow = new BrowserWindow({
+            width: 1280,
+            height: 800,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+            },
+            title: 'Gym Ease'
+        });
+
+        mainWindow.loadURL(`http://localhost:${port}`);
+
+        if (!app.isPackaged) {
+            mainWindow.webContents.openDevTools();
+        }
+    }
+
+    app.whenReady().then(async () => {
+        ensureDatabase();
+        startAutoBackup();
+        const port = await startNextServer();
+        createWindow(port);
+
+        app.on('activate', () => {
+            if (BrowserWindow.getAllWindows().length === 0) {
+                createWindow(port);
+            }
         });
     });
-};
 
-function killNextServer() {
-    if (!nextServerProcess || nextServerProcess.killed) return;
+    /* ================== APP SHUTDOWN HANDLERS ================== */
 
-    console.log('Force killing Next.js server...');
-
-    if (process.platform === 'win32') {
-        // Kill entire process tree reliably
-        execSync(`taskkill /PID ${nextServerProcess.pid} /T /F`, { stdio: 'ignore' });
-    } else {
-        // Kill process group
-        try {
-            process.kill(-nextServerProcess.pid, 'SIGKILL');
-        } catch (e) { }
-    }
-
-    nextServerProcess = null;
-}
-
-
-function createWindow(port) {
-    mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 800,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-        },
-        title: 'Gym Ease'
-    });
-
-    mainWindow.loadURL(`http://localhost:${port}`);
-
-    if (!app.isPackaged) {
-        mainWindow.webContents.openDevTools();
-    }
-}
-
-app.whenReady().then(async () => {
-    ensureDatabase();
-    startAutoBackup(); // Start automatic backup
-    const port = await startNextServer();
-    createWindow(port);
-
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow(port);
+    // Fired when all windows are closed
+    app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') {
+            fastQuit();
         }
     });
-});
 
-// app.on('window-all-closed', () => {
-//     // Kill the server process immediately when window closes
-//     if (nextServerProcess) {
-//         console.log('Killing Next.js server process...');
+    // Fired when app is quitting (Cmd+Q, Alt+F4, installer close, etc.)
+    app.on('before-quit', () => {
+        fastQuit();
+    });
 
-//         // On Windows, use taskkill for more reliable termination
-//         if (process.platform === 'win32') {
-//             exec(`taskkill /pid ${nextServerProcess.pid} /T /F`, (error) => {
-//                 if (error) {
-//                     console.error('Error killing process:', error);
-//                 } else {
-//                     console.log('Server process killed successfully');
-//                 }
-//             });
-//         } else {
-//             // Unix-like systems
-//             nextServerProcess.kill('SIGTERM');
-//             setTimeout(() => {
-//                 if (nextServerProcess && !nextServerProcess.killed) {
-//                     nextServerProcess.kill('SIGKILL');
-//                 }
-//             }, 2000);
-//         }
+    // Fired when Node process exits
+    process.on('exit', () => {
+        killNextServer();
+    });
 
-//         nextServerProcess = null;
-//     }
+    // Fired on Ctrl+C (dev mode)
+    process.on('SIGINT', () => {
+        fastQuit();
+    });
 
-//     if (process.platform !== 'darwin') {
-//         app.quit();
-//     }
-// });
-
-// Additional cleanup on app quit
-// app.on('before-quit', () => {
-//     if (nextServerProcess) {
-//         console.log('App quitting - killing server...');
-
-//         if (process.platform === 'win32') {
-//             exec(`taskkill /pid ${nextServerProcess.pid} /T /F`);
-//         } else {
-//             nextServerProcess.kill('SIGKILL');
-//         }
-
-//         nextServerProcess = null;
-//     }
-// });
-
-
-/* ================== APP SHUTDOWN HANDLERS ================== */
-
-// Fired when all windows are closed
-app.on('window-all-closed', () => {
-    isShuttingDown = true; // Mark as intentional shutdown
-    killNextServer();
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
-
-// Fired when app is quitting (Cmd+Q, Alt+F4, installer close, etc.)
-app.on('before-quit', () => {
-    stopAutoBackup();
-    killNextServer();
-});
-
-// Fired when Node process exits
-process.on('exit', () => {
-    killNextServer();
-});
-
-// Fired on Ctrl+C (dev mode)
-process.on('SIGINT', () => {
-    killNextServer();
-});
-
-// Fired on system kill / shutdown
-process.on('SIGTERM', () => {
-    killNextServer();
-});
+    // Fired on system kill / shutdown
+    process.on('SIGTERM', () => {
+        fastQuit();
+    });
+}

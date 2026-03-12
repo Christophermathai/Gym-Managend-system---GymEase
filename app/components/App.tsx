@@ -10,6 +10,8 @@ import { ModalProvider } from './ModalContext';
 import { WelcomeSetup } from './WelcomeSetup';
 import { useState, useEffect } from 'react';
 import { Footer } from './Footer';
+import LottieLoader from './LottieLoader';
+import { AnimatePresence } from 'framer-motion';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -35,7 +37,9 @@ export function App() {
   if (loading || needsSetup === null) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-obsidian-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+        <AnimatePresence>
+          <LottieLoader size={130} key="app-loader" />
+        </AnimatePresence>
       </div>
     );
   }

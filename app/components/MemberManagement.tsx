@@ -1,10 +1,11 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { MemberDetail } from './MemberDetail';
 import { toast } from 'sonner';
+import LottieLoader from './LottieLoader';
 
 interface Member {
   id: string;
@@ -12,9 +13,7 @@ interface Member {
   email: string;
   phone: string;
   gender: string;
-  address: string;
   bloodGroup: string;
-  medicalNotes: string;
   is_active: boolean;
   subscriptions?: any[];
   payments?: any[];
@@ -165,8 +164,17 @@ ${gymName} Team`;
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this member?')) return;
+    setMemberToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!memberToDelete) return;
+    const id = memberToDelete;
 
     try {
       const response = await fetch(`/api/members/${id}`, {
@@ -176,6 +184,13 @@ ${gymName} Team`;
 
       if (response.ok) {
         toast.success('Member deleted successfully');
+        if (selectedMemberId === id) setSelectedMemberId(null);
+        if (editingMember?.id === id) {
+          setEditingMember(null);
+          setShowEditModal(false);
+        }
+        setShowDeleteConfirm(false);
+        setMemberToDelete(null);
         fetchMembers();
       } else {
         toast.error('Failed to delete member');
@@ -187,8 +202,10 @@ ${gymName} Team`;
 
   if (loading) {
     return (
-      <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+      <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg flex items-center justify-center min-h-[400px]">
+        <AnimatePresence>
+          <LottieLoader size={130} key="member-loader" />
+        </AnimatePresence>
       </div>
     );
   }
@@ -490,38 +507,28 @@ ${gymName} Team`;
                   className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono"
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Address</label>
+            <div>
+              <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Blood Group</label>
+              <input
+                type="text"
+                value={formData.bloodGroup || ''}
+                onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="text"
-                  value={formData.address || ''}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+                  type="checkbox"
+                  checked={formData.is_active || false}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-electric-500 focus:ring-electric-500 rounded-sm"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1">Blood Group</label>
-                <input
-                  type="text"
-                  value={formData.bloodGroup || ''}
-                  onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active || false}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-electric-500 focus:ring-electric-500 rounded-sm"
-                  />
-                  <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Active Member</span>
-                </label>
-              </div>
+                <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Active Member</span>
+              </label>
             </div>
 
             <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
@@ -548,6 +555,40 @@ ${gymName} Team`;
           memberId={selectedMemberId}
           onClose={() => setSelectedMemberId(null)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+          <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-2xl p-8 max-w-sm w-full text-center">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-industrial-50 uppercase tracking-wider mb-2">Delete Member?</h3>
+            <p className="text-industrial-400 text-sm mb-8 leading-relaxed">
+              This action cannot be undone. All subscription and payment history for this member will be permanently removed.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setMemberToDelete(null);
+                }}
+                className="px-4 py-2.5 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-widest hover:text-industrial-50 transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2.5 bg-red-600 text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-red-700 transition-shadow shadow-lg shadow-red-600/20"
+              >
+                DELETE
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

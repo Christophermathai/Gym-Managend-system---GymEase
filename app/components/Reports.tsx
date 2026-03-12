@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { formatCurrency, formatDate } from '@/app/lib/utils';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
+import LottieLoader from './LottieLoader';
 
 type ReportType = 'members' | 'payments' | 'expenses' | 'summary' | 'expiring';
 
@@ -443,18 +445,20 @@ export function Reports() {
                         )}
 
                         {/* Generate button */}
-                        <div className="flex flex-row gap-2 justify-center">
+                        <div className="flex flex-col items-center justify-start gap-2 h-full">
                             <button
                                 onClick={generateReport}
                                 disabled={loading}
                                 className="w-full bg-electric-500 hover:bg-electric-600 disabled:opacity-60 text-white font-bold text-[10px] uppercase tracking-widest py-2 px-4 rounded transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,102,255,0.3)]"
                             >
-                                {loading ? (
-                                    <>
-                                        <span className="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full" />
-                                        GENERATING...
-                                    </>
-                                ) : 'GENERATE'}
+                                <AnimatePresence mode="wait">
+                                    {loading && (
+                                        <>
+                                            GENERATING...
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                                {!loading && 'GENERATE'}
                             </button>
                             {result && (
                                 <button

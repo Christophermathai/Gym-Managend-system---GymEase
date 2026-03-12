@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './AuthContext';
 import { useModals } from './ModalContext';
 import { OwnerDashboard } from './OwnerDashboard';
@@ -23,6 +24,7 @@ import {
   LogOut, PlusCircle
 } from 'lucide-react';
 import { GymSettings } from './GymSettings';
+import LottieLoader from './LottieLoader';
 
 export function Dashboard() {
   const { user, signOut } = useAuth();
@@ -62,7 +64,9 @@ export function Dashboard() {
   if (!user || !user.profile) {
     return (
       <div className="flex justify-center items-center h-screen bg-obsidian-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-500"></div>
+        <AnimatePresence>
+          <LottieLoader size={130} />
+        </AnimatePresence>
       </div>
     );
   }

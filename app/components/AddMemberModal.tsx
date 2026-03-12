@@ -17,9 +17,7 @@ export function AddMemberModal({ isOpen, onClose, onSuccess }: AddMemberModalPro
     phone: '',
     email: '',
     gender: 'male',
-    address: '',
     bloodGroup: '',
-    medicalNotes: '',
     admissionDate: Date.now(),
   });
   const [loading, setLoading] = useState(false);
@@ -49,9 +47,7 @@ export function AddMemberModal({ isOpen, onClose, onSuccess }: AddMemberModalPro
           phone: '',
           email: '',
           gender: 'male',
-          address: '',
           bloodGroup: '',
-          medicalNotes: '',
           admissionDate: Date.now(),
         });
         onSuccess();

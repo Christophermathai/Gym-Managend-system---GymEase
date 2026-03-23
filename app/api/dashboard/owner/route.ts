@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Revenue calculations
     const allPayments = await allAsync(
       db,
-      'SELECT amount, payment_date FROM payments WHERE status = ?',
+      'SELECT amount, payment_date FROM payments WHERE status = ? AND COALESCE(is_active, 1) = 1',
       ['completed']
     );
 
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     // Pending payments (balances from partial payments + amounts from pending payments)
     const pendingAndPartialPayments = await allAsync(
       db,
-      'SELECT amount, balance, status FROM payments WHERE status IN (?, ?)',
+      'SELECT amount, balance, status FROM payments WHERE status IN (?, ?) AND COALESCE(is_active, 1) = 1',
       ['pending', 'partial']
     );
 
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       `SELECT p.*, m.name as member_name, m.member_id
        FROM payments p
        LEFT JOIN members m ON p.member_id = m.id
-       WHERE p.status = ?
+       WHERE p.status = ? AND COALESCE(p.is_active, 1) = 1
        ORDER BY p.payment_date DESC
        LIMIT 10`,
       ['completed']
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       `SELECT DISTINCT m.id
        FROM members m
        INNER JOIN payments p ON m.id = p.member_id
-       WHERE m.is_active = 1 AND p.status = 'partial' AND p.balance > 0`,
+       WHERE m.is_active = 1 AND p.status = 'partial' AND p.balance > 0 AND COALESCE(p.is_active, 1) = 1`,
       []
     );
 
@@ -138,25 +138,24 @@ export async function GET(request: NextRequest) {
          AND s.end_date >= ?
          AND s.status = 'active'
          AND m.id NOT IN (
-           SELECT member_id FROM payments WHERE status = 'partial' AND balance > 0
+           SELECT member_id FROM payments WHERE status = 'partial' AND balance > 0 AND COALESCE(is_active, 1) = 1
          )`,
       [now]
     );
 
-    // Expired Members with Unpaid Balances
-    // Get members whose subscription has expired (end_date < now) AND they have a partial payment balance
+    // Expired/Cancelled Members (subscription expired or cancelled via soft-delete)
     const expiredMembersWithUnpaid = await allAsync(
       db,
-      `SELECT m.id, m.name, m.phone, s.end_date, SUM(p.balance) as unpaid_amount
+      `SELECT m.id, m.name, m.phone, s.end_date, s.status as sub_status,
+              COALESCE(SUM(CASE WHEN p.status = 'partial' AND p.balance > 0 AND COALESCE(p.is_active, 1) = 1 THEN p.balance ELSE 0 END), 0) as unpaid_amount
        FROM members m
        INNER JOIN subscriptions s ON m.id = s.member_id
-       INNER JOIN payments p ON m.id = p.member_id
-       WHERE s.end_date < ? 
-         AND p.status = 'partial' 
-         AND p.balance > 0
+       LEFT JOIN payments p ON m.id = p.member_id
+       WHERE m.is_active = 1
+         AND (s.end_date < ? OR s.status = 'cancelled')
        GROUP BY m.id
        ORDER BY s.end_date DESC
-       LIMIT 10`,
+       LIMIT 15`,
       [now]
     );
 

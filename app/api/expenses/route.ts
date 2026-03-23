@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync } from '@/db';
+import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { getAuthUserId, getUserRole } from '@/app/lib/api-utils';
 
@@ -99,5 +99,74 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error recording expense:', error);
     return NextResponse.json({ error: 'Failed to record expense: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const userId = getAuthUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userRole = await getUserRole(userId);
+    if (!userRole || !['owner', 'trainer'].includes(userRole)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const {
+      id,
+      category,
+      description,
+      amount,
+      expenseDate,
+      expense_date,
+      paymentMode,
+      payment_mode,
+      receiptNumber,
+      receipt_number,
+      notes,
+    } = body;
+
+    const finalExpenseDate = expenseDate || expense_date;
+    const finalPaymentMode = paymentMode || payment_mode;
+    const finalReceiptNumber = receiptNumber || receipt_number;
+
+    if (!id || !category || !description || !amount || !finalExpenseDate || !finalPaymentMode) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    const db = await getDatabase();
+
+    // Check if expense exists
+    const existing = await getAsync(db, 'SELECT id FROM expenses WHERE id = ?', [id]);
+    if (!existing) {
+      return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+    }
+
+    await runAsync(
+      db,
+      `UPDATE expenses 
+       SET category = ?, description = ?, amount = ?, expense_date = ?, payment_mode = ?, receipt_number = ?, notes = ?
+       WHERE id = ?`,
+      [category, description, amount, finalExpenseDate, finalPaymentMode, finalReceiptNumber || null, notes || null, id]
+    );
+
+    // Log action
+    await runAsync(
+      db,
+      `INSERT INTO audit_log (id, user_id, action, entity_type, entity_id, details, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [generateId('log_'), userId, 'UPDATE_EXPENSE', 'expense', id, `Updated expense: ${description} (${amount})`, Date.now()]
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    return NextResponse.json({ error: 'Failed to update expense' }, { status: 500 });
   }
 }

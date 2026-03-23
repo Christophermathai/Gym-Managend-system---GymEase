@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { ConfirmDialog } from './ConfirmDialog';
 import { formatCurrency, formatDate } from '@/app/lib/utils';
 import LottieLoader from './LottieLoader';
 
@@ -22,6 +23,8 @@ export function ExpenseManagement() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>('');
   const [formData, setFormData] = useState<Partial<Expense>>({});
 
@@ -49,40 +52,81 @@ export function ExpenseManagement() {
     }
   };
 
-  const handleAdd = async () => {
-    if (!formData.description || !formData.amount || !formData.expense_date || !formData.payment_mode) {
+  const handleSubmit = async () => {
+    if (!formData.description || !formData.amount || !formData.expense_date || !formData.payment_mode || !formData.category) {
       toast.error('Please fill all required fields');
       return;
     }
 
     try {
+      setLoading(true);
+      const method = isEditing ? 'PUT' : 'POST';
+
+      // Ensure expense_date is sent as a numeric timestamp (consistent with DB INTEGER type)
+      const processedData = {
+        ...formData,
+        expense_date: formData.expense_date ? new Date(formData.expense_date).getTime() : Date.now()
+      };
+
+      const body = isEditing ? { ...processedData, id: editId } : processedData;
+
       const response = await fetch('/api/expenses', {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success('Expense recorded successfully');
-        setShowAddModal(false);
-        setFormData({});
+        toast.success(isEditing ? 'Expense updated successfully' : 'Expense recorded successfully');
+        handleCloseModal();
         fetchExpenses();
       } else {
-        toast.error('Failed to record expense');
+        const err = await response.json();
+        toast.error(err.error || `Failed to ${isEditing ? 'update' : 'record'} expense`);
       }
     } catch (error) {
-      toast.error('Error recording expense');
+      toast.error(`Error ${isEditing ? 'updating' : 'recording'} expense`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleEditClick = (expense: Expense) => {
+    setFormData({
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
+      expense_date: expense.expense_date.split('T')[0], // Ensure date format for input
+      payment_mode: expense.payment_mode,
+      receipt_number: expense.receipt_number || '',
+      notes: expense.notes || '',
+    });
+    setEditId(expense.id);
+    setIsEditing(true);
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setIsEditing(false);
+    setEditId(null);
+    setFormData({});
+  };
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/expenses/${id}`, {
+      const response = await fetch(`/api/expenses/${deleteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -90,9 +134,12 @@ export function ExpenseManagement() {
       if (response.ok) {
         toast.success('Expense deleted');
         fetchExpenses();
+        setTimeout(() => window.location.reload(), 500);
       }
     } catch (error) {
       toast.error('Error deleting expense');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -109,7 +156,10 @@ export function ExpenseManagement() {
       <div className="flex justify-between items-center mb-6 border-b border-obsidian-700 pb-4">
         <h2 className="text-2xl font-bold text-industrial-50 font-sans tracking-tight">Expenses</h2>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            handleCloseModal();
+            setShowAddModal(true);
+          }}
           className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 transition-colors flex items-center gap-2 text-sm font-medium"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -170,7 +220,13 @@ export function ExpenseManagement() {
                   <td className="px-4 py-3 text-industrial-50">{expense.description}</td>
                   <td className="px-4 py-3 font-mono font-bold text-electric-500 text-right">{formatCurrency(expense.amount)}</td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditClick(expense)}
+                        className="px-3 py-1.5 bg-electric-500/10 text-electric-500 border border-electric-500/30 rounded text-xs font-bold tracking-wider hover:bg-electric-500/20 transition-colors uppercase"
+                      >
+                        EDIT
+                      </button>
                       <button
                         onClick={() => handleDelete(expense.id)}
                         className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/30 rounded text-xs font-bold tracking-wider hover:bg-red-500/20 transition-colors uppercase"
@@ -196,7 +252,9 @@ export function ExpenseManagement() {
       {showAddModal && (
         <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">Record Expense</h3>
+            <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">
+              {isEditing ? 'Edit Expense' : 'Record Expense'}
+            </h3>
 
             <div className="space-y-4">
               <div>
@@ -257,9 +315,10 @@ export function ExpenseManagement() {
                 >
                   <option value="">Select mode</option>
                   <option value="cash">Cash</option>
-                  <option value="check">Check</option>
+                  <option value="upi">UPI</option>
                   <option value="card">Card</option>
                   <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cheque">Cheque</option>
                 </select>
               </div>
 
@@ -286,21 +345,33 @@ export function ExpenseManagement() {
 
             <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={handleCloseModal}
                 className="px-4 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded hover:text-industrial-50 text-sm font-medium transition-colors"
+                disabled={loading}
               >
                 CANCEL
               </button>
               <button
-                onClick={handleAdd}
-                className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 text-sm font-medium transition-colors"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                RECORD EXPENSE
+                {loading ? 'PROCESSING...' : isEditing ? 'UPDATE EXPENSE' : 'RECORD EXPENSE'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Delete Expense?"
+        message="This expense record will be permanently deleted. This action cannot be undone."
+        confirmLabel="DELETE"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

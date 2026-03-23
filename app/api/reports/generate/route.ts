@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
           m.phone as member_phone
         FROM payments p
         LEFT JOIN members m ON p.member_id = m.id
-        WHERE p.payment_date >= ? AND p.payment_date <= ?
+        WHERE p.payment_date >= ? AND p.payment_date <= ? AND COALESCE(p.is_active, 1) = 1
         ORDER BY p.payment_date DESC`,
                 [from, to]
             );
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
         if (type === 'summary') {
             const payments = await allAsync(
                 db,
-                `SELECT amount, payment_date, payment_type FROM payments WHERE status = 'completed' AND payment_date >= ? AND payment_date <= ?`,
+                `SELECT amount, payment_date, payment_type FROM payments WHERE status = 'completed' AND COALESCE(is_active, 1) = 1 AND payment_date >= ? AND payment_date <= ?`,
                 [from, to]
             );
 

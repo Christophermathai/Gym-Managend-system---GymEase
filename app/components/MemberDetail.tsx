@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
 import { formatDate, formatCurrency } from '@/app/lib/utils';
 import LottieLoader from './LottieLoader';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface MemberDetailProps {
   memberId: string;
@@ -45,6 +46,7 @@ interface Payment {
   transaction_id: string;
   payment_date: number;
   notes: string;
+  is_active: boolean | number;
 }
 
 export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
@@ -53,6 +55,8 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmPaymentId, setConfirmPaymentId] = useState<string | null>(null);
+  const [confirmPaymentActive, setConfirmPaymentActive] = useState(true);
 
   useEffect(() => {
     fetchMemberDetails();
@@ -74,7 +78,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
       }
 
       // Fetch payments
-      const paymentsResponse = await fetch(`/api/payments?memberId=${memberId}`, {
+      const paymentsResponse = await fetch(`/api/payments?memberId=${memberId}&includeInactive=true`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -87,6 +91,37 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
       toast.error('Error loading member details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTogglePayment = async (paymentId: string, currentlyActive: boolean | number) => {
+    const isActive = currentlyActive === true || currentlyActive === 1;
+    setConfirmPaymentId(paymentId);
+    setConfirmPaymentActive(isActive);
+  };
+
+  const executeTogglePayment = async () => {
+    if (!confirmPaymentId) return;
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: confirmPaymentId, is_active: !confirmPaymentActive }),
+      });
+      if (response.ok) {
+        toast.success(confirmPaymentActive ? 'Payment removed from totals' : 'Payment restored');
+        fetchMemberDetails();
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        toast.error('Failed to update payment');
+      }
+    } catch {
+      toast.error('Error updating payment');
+    } finally {
+      setConfirmPaymentId(null);
     }
   };
 
@@ -125,196 +160,225 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
     : null;
 
   return (
-    <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-7xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-obsidian-700 shrink-0">
-          <h2 className="text-2xl font-bold text-industrial-50 uppercase tracking-wide">Member Details</h2>
-          <button
-            onClick={onClose}
-            className="text-industrial-400 hover:text-industrial-50 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
+    <>
+      <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-8 max-w-7xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-obsidian-700 shrink-0">
+            <h2 className="text-2xl font-bold text-industrial-50 uppercase tracking-wide">Member Details</h2>
+            <button
+              onClick={onClose}
+              className="text-industrial-400 hover:text-industrial-50 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8 flex-1 min-h-0">
-          {/* Left Column: Details & Subscription */}
-          <div className="space-y-6 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
-            {/* Member Info Card */}
-            <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-electric-500 relative shrink-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Name</p>
-                  <p className="text-xl font-bold text-industrial-50 uppercase">{member.name}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Phone</p>
-                  <p className="text-lg font-mono text-industrial-300">{member.phone}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Email</p>
-                  <p className="text-sm font-mono text-industrial-300">{member.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Gender</p>
-                  <p className="text-sm text-industrial-50 uppercase tracking-wider">{member.gender || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Blood Group</p>
-                  <p className="text-sm text-industrial-50 uppercase font-mono">{member.blood_group || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Status</p>
-                  <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${member.is_active ? 'bg-electric-500/10 border-electric-500/30 text-electric-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
-                    {member.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Fee Plan Card */}
-            {subscription ? (
-              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-steelgold-500 shrink-0">
-                <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Fee Plan Subscription</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8 flex-1 min-h-0">
+            {/* Left Column: Details & Subscription */}
+            <div className="space-y-6 flex flex-col overflow-y-auto pr-2 custom-scrollbar">
+              {/* Member Info Card */}
+              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-electric-500 relative shrink-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Plan Name</p>
-                    <p className="text-lg font-bold text-steelgold-500 uppercase">{subscription.plan_name}</p>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Name</p>
+                    <p className="text-xl font-bold text-industrial-50 uppercase">{member.name}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Monthly Fee</p>
-                    <p className="text-lg font-mono font-bold text-industrial-50">{formatCurrency(subscription.monthly_fee)}</p>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Phone</p>
+                    <p className="text-lg font-mono text-industrial-300">{member.phone}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Duration</p>
-                    <p className="text-sm font-mono text-industrial-300">{subscription.duration} MONTHS</p>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Email</p>
+                    <p className="text-sm font-mono text-industrial-300">{member.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Gender</p>
+                    <p className="text-sm text-industrial-50 uppercase tracking-wider">{member.gender || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Blood Group</p>
+                    <p className="text-sm text-industrial-50 uppercase font-mono">{member.blood_group || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Status</p>
-                    <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${subscription.status === 'active' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
-                      subscription.status === 'expiring_soon' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
-                        'bg-red-500/10 border-red-500/30 text-red-500'
-                      }`}>
-                      {subscription.status}
+                    <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${member.is_active ? 'bg-electric-500/10 border-electric-500/30 text-electric-500' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+                      {member.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-4 border-t border-obsidian-700/50">
-                  <div>
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Start Date</p>
-                    <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.start_date)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">End Date</p>
-                    <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.end_date)}</p>
-                  </div>
-                </div>
-
-                {daysRemaining !== null && (
-                  <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600 flex justify-between items-center">
-                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Days Remaining</p>
-                    <p className={`text-xl font-mono font-bold ${daysRemaining > 30 ? 'text-green-500' :
-                      daysRemaining > 0 ? 'text-steelgold-500' :
-                        'text-red-500'
-                      }`}>
-                      {daysRemaining > 0 ? daysRemaining : 'EXPIRED'}
-                    </p>
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-red-500 shrink-0">
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">[ NO ACTIVE FEE PLAN ]</p>
-              </div>
-            )}
-          </div>
 
-          {/* Right Column: Payments */}
-          <div className="flex flex-col h-[600px] lg:h-auto">
-            {/* Payments Section */}
-            <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-green-500 flex-1 flex flex-col h-full min-h-0">
-              <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Payment History</h3>
-
-              {payments && payments.length > 0 ? (
-                <div className="flex flex-col h-full">
-                  <div className="overflow-x-auto overflow-y-auto border border-obsidian-600 rounded flex-1 custom-scrollbar">
-                    <table className="w-full text-sm">
-                      <thead className="bg-obsidian-900 border-b border-obsidian-600 sticky top-0 z-10">
-                        <tr>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Date</th>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Amount</th>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Type</th>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Mode</th>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Txn ID</th>
-                          <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-obsidian-700/50">
-                        {payments.map((payment) => (
-                          <tr key={payment.id} className="hover:bg-obsidian-700/30 transition-colors">
-                            <td className="py-3 px-4 font-mono text-xs text-industrial-300">{formatDate(payment.payment_date)}</td>
-                            <td className="py-3 px-4 font-mono font-bold text-green-500">{formatCurrency(payment.amount)}</td>
-                            <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
-                                {payment.payment_type}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
-                                {payment.payment_mode}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-industrial-400 text-xs font-mono">{payment.transaction_id || '-'}</td>
-                            <td className="py-3 px-4 text-industrial-400 text-xs">{payment.notes || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Payment Summary */}
-                  <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Total</p>
-                        <p className="text-2xl font-mono font-bold text-green-500">
-                          {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Payments</p>
-                        <p className="text-2xl font-mono font-bold text-industrial-50">{payments.length}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Latest</p>
-                        <p className="text-lg font-mono text-industrial-300">
-                          {formatDate(payments[0]?.payment_date)}
-                        </p>
-                      </div>
+              {/* Fee Plan Card */}
+              {subscription ? (
+                <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-steelgold-500 shrink-0">
+                  <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Fee Plan Subscription</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Plan Name</p>
+                      <p className="text-lg font-bold text-steelgold-500 uppercase">{subscription.plan_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Monthly Fee</p>
+                      <p className="text-lg font-mono font-bold text-industrial-50">{formatCurrency(subscription.monthly_fee)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Duration</p>
+                      <p className="text-sm font-mono text-industrial-300">{subscription.duration} MONTHS</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Status</p>
+                      <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider border inline-block ${subscription.status === 'active' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
+                        subscription.status === 'expiring_soon' ? 'bg-steelgold-500/10 border-steelgold-500/30 text-steelgold-500' :
+                          'bg-red-500/10 border-red-500/30 text-red-500'
+                        }`}>
+                        {subscription.status}
+                      </span>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-4 border-t border-obsidian-700/50">
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Start Date</p>
+                      <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.start_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">End Date</p>
+                      <p className="text-sm font-mono text-industrial-300">{formatDate(subscription.end_date)}</p>
+                    </div>
+                  </div>
+
+                  {daysRemaining !== null && (
+                    <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600 flex justify-between items-center">
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Days Remaining</p>
+                      <p className={`text-xl font-mono font-bold ${daysRemaining > 30 ? 'text-green-500' :
+                        daysRemaining > 0 ? 'text-steelgold-500' :
+                          'text-red-500'
+                        }`}>
+                        {daysRemaining > 0 ? daysRemaining : 'EXPIRED'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest font-mono">[ NO PAYMENTS RECORDED YET ]</p>
+                <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-red-500 shrink-0">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">[ NO ACTIVE FEE PLAN ]</p>
                 </div>
               )}
             </div>
+
+            {/* Right Column: Payments */}
+            <div className="flex flex-col h-[600px] lg:h-auto">
+              {/* Payments Section */}
+              <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-green-500 flex-1 flex flex-col h-full min-h-0">
+                <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Payment History</h3>
+
+                {payments && payments.length > 0 ? (
+                  <div className="flex flex-col h-full">
+                    <div className="overflow-x-auto overflow-y-auto border border-obsidian-600 rounded flex-1 custom-scrollbar">
+                      <table className="w-full text-sm">
+                        <thead className="bg-obsidian-900 border-b border-obsidian-600 sticky top-0 z-10">
+                          <tr>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Date</th>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Amount</th>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Type</th>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Mode</th>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Txn ID</th>
+                            <th className="text-left py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Notes</th>
+                            <th className="text-right py-3 px-4 font-semibold text-[10px] text-industrial-400 uppercase tracking-widest">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-obsidian-700/50">
+                          {payments.map((payment) => {
+                            const isActive = payment.is_active === true || payment.is_active === 1 || payment.is_active === undefined;
+                            return (
+                              <tr key={payment.id} className={`transition-colors group ${isActive ? 'hover:bg-obsidian-700/30' : 'opacity-40 line-through bg-obsidian-900/30'}`}>
+                                <td className="py-3 px-4 font-mono text-xs text-industrial-300">{formatDate(payment.payment_date)}</td>
+                                <td className={`py-3 px-4 font-mono font-bold ${isActive ? 'text-green-500' : 'text-industrial-500'}`}>{formatCurrency(payment.amount)}</td>
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
+                                    {payment.payment_type}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 bg-obsidian-700 border border-obsidian-600 text-industrial-300 text-[10px] font-bold uppercase tracking-wider rounded-[2px] inline-block">
+                                    {payment.payment_mode}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-industrial-400 text-xs font-mono">{payment.transaction_id || '-'}</td>
+                                <td className="py-3 px-4 text-industrial-400 text-xs">{payment.notes || '-'}</td>
+                                <td className="py-3 px-4 text-right">
+                                  <button
+                                    onClick={() => handleTogglePayment(payment.id, payment.is_active)}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold tracking-wider transition-colors uppercase opacity-0 group-hover:opacity-100 ${isActive
+                                      ? 'bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20'
+                                      : 'bg-green-500/10 text-green-500 border border-green-500/30 hover:bg-green-500/20'
+                                      }`}
+                                  >
+                                    {isActive ? 'DEL' : 'RESTORE'}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Payment Summary */}
+                    <div className="mt-6 p-4 rounded bg-obsidian-800 border border-obsidian-600">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Total</p>
+                          <p className="text-2xl font-mono font-bold text-green-500">
+                            {formatCurrency(payments.filter(p => p.is_active === true || p.is_active === 1 || p.is_active === undefined).reduce((sum, p) => sum + p.amount, 0))}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Active Payments</p>
+                          <p className="text-2xl font-mono font-bold text-industrial-50">{payments.filter(p => p.is_active === true || p.is_active === 1 || p.is_active === undefined).length}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Latest</p>
+                          <p className="text-lg font-mono text-industrial-300">
+                            {formatDate(payments[0]?.payment_date)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest font-mono">[ NO PAYMENTS RECORDED YET ]</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <div className="mt-8 flex justify-end shrink-0">
+            <button
+              onClick={onClose}
+              className="px-8 py-3 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 hover:border-industrial-400 transition-colors"
+            >
+              CLOSE DETAILS
+            </button>
           </div>
         </div>
-
-        {/* Close Button */}
-        <div className="mt-8 flex justify-end shrink-0">
-          <button
-            onClick={onClose}
-            className="px-8 py-3 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 hover:border-industrial-400 transition-colors"
-          >
-            CLOSE DETAILS
-          </button>
-        </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        isOpen={!!confirmPaymentId}
+        title={confirmPaymentActive ? 'Remove Payment?' : 'Restore Payment?'}
+        message={confirmPaymentActive
+          ? 'This payment will be greyed out and excluded from all totals and reports. The linked subscription will be cancelled.'
+          : 'This payment will be restored and included in totals again. The linked subscription will be reactivated.'}
+        confirmLabel={confirmPaymentActive ? 'REMOVE' : 'RESTORE'}
+        variant={confirmPaymentActive ? 'danger' : 'info'}
+        onConfirm={executeTogglePayment}
+        onCancel={() => setConfirmPaymentId(null)}
+      />
+    </>
   );
 }

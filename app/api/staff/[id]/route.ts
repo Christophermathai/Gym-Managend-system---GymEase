@@ -43,7 +43,7 @@ export async function PUT(
 
     await runAsync(db, updateQuery, [
       name, role, email, phone, salary, joiningDate,
-      isActive !== undefined ? isActive : null, notes, id
+      isActive !== undefined ? (isActive ? 1 : 0) : null, notes, id
     ]);
 
     await runAsync(

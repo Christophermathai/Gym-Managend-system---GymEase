@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 
 interface PaymentChartProps {
@@ -32,14 +32,14 @@ export function PaymentChart({ paidCount, unpaidCount, partialCount = 0 }: Payme
             className="w-full flex flex-col md:flex-row items-center gap-6"
         >
             <div className="w-full md:w-1/2">
-                <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
+                <ResponsiveContainer width="100%" height={300}>
+                    <PieChart margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                         <Pie
                             data={data}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                            label={false}
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
@@ -53,6 +53,23 @@ export function PaymentChart({ paidCount, unpaidCount, partialCount = 0 }: Payme
                         <Tooltip
                             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', color: '#f8fafc', fontSize: '12px', fontFamily: 'monospace' }}
                             itemStyle={{ color: '#f8fafc' }}
+                        />
+                        <Legend
+                            verticalAlign="top"
+                            align="center"
+                            iconType="circle"
+                            content={({ payload }) => (
+                                <div className="flex justify-center gap-4 mb-4">
+                                    {payload?.map((entry: any, index: number) => (
+                                        <div key={`legend-${index}`} className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                            <span className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest font-mono">
+                                                {entry.value}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         />
                     </PieChart>
                 </ResponsiveContainer>

@@ -27,7 +27,6 @@ export async function GET(request: NextRequest) {
                 const stats = fs.statSync(filePath);
                 return {
                     name: file,
-                    path: filePath,
                     size: stats.size,
                     modified: stats.mtime.getTime()
                 };
@@ -48,10 +47,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { backupPath } = await request.json();
+        const { filename } = await request.json();
 
-        if (!backupPath) {
-            return NextResponse.json({ error: 'Backup path required' }, { status: 400 });
+        if (!filename) {
+            return NextResponse.json({ error: 'Backup filename required' }, { status: 400 });
         }
 
         // Verify user role is owner
@@ -69,9 +68,17 @@ export async function POST(request: NextRequest) {
 
         const fs = await import('fs');
         const path = await import('path');
+        const os = await import('os');
+
+        // Prevent Path Traversal by extracting just the base filename
+        const sanitizedFilename = path.basename(filename);
+
+        const documentsPath = path.join(os.homedir(), 'Documents');
+        const backupDir = path.join(documentsPath, 'GymEase_Backups');
+        const targetBackupPath = path.join(backupDir, sanitizedFilename);
 
         // Verify backup file exists
-        if (!fs.existsSync(backupPath)) {
+        if (!fs.existsSync(targetBackupPath)) {
             return NextResponse.json({ error: 'Backup file not found' }, { status: 404 });
         }
 
@@ -96,7 +103,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Restore the backup
-        fs.copyFileSync(backupPath, currentDbPath);
+        fs.copyFileSync(targetBackupPath, currentDbPath);
 
         return NextResponse.json({
             message: 'Database restored successfully. Please restart the application.',

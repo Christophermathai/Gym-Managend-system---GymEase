@@ -33,7 +33,8 @@ export async function PUT(
       securityDeposit,
       security_deposit,
       is_personal_training,
-      is_couple_package
+      is_couple_package,
+      is_active
     } = body;
 
     const finalMonthlyFee = monthlyFee ?? monthly_fee;
@@ -54,9 +55,9 @@ export async function PUT(
     await runAsync(
       db,
       `UPDATE fee_plans SET name = ?, description = ?, duration = ?, monthly_fee = ?, 
-       admission_fee = ?, registration_fee = ?, security_deposit = ?, is_personal_training = ?, is_couple_package = ?
+       admission_fee = ?, registration_fee = ?, security_deposit = ?, is_personal_training = ?, is_couple_package = ?, is_active = ?
        WHERE id = ?`,
-      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, is_personal_training ? 1 : 0, is_couple_package ? 1 : 0, id]
+      [name, description || null, duration, finalMonthlyFee, finalAdmissionFee || 0, finalRegistrationFee || 0, finalSecurityDeposit || 0, is_personal_training ? 1 : 0, is_couple_package ? 1 : 0, is_active !== undefined ? (is_active ? 1 : 0) : plan.is_active, id]
     );
 
     await runAsync(

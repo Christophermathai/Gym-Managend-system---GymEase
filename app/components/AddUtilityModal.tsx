@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import LottieLoader from './LottieLoader';
 
 interface AddUtilityModalProps {
   isOpen: boolean;
@@ -146,8 +145,8 @@ export function AddUtilityModal({ isOpen, onClose, onSuccess }: AddUtilityModalP
               className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
             >
               <option value="cash">Cash</option>
-              <option value="card">Card</option>
               <option value="upi">UPI</option>
+              <option value="card">Card</option>
               <option value="bank_transfer">Bank Transfer</option>
               <option value="cheque">Cheque</option>
             </select>
@@ -178,12 +177,7 @@ export function AddUtilityModal({ isOpen, onClose, onSuccess }: AddUtilityModalP
             className="px-6 py-2 bg-electric-500 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-electric-600 transition-colors disabled:opacity-50 flex items-center gap-2 focus:ring-2 focus:ring-electric-500 focus:ring-offset-2 focus:ring-offset-obsidian-900 shadow-lg shadow-electric-500/20"
             disabled={loading}
           >
-            {loading ? (
-              <>
-                <LottieLoader size={130} className="text-white" />
-                RECORDING...
-              </>
-            ) : 'RECORD UTILITY'}
+            {loading ? 'RECORDING...' : 'RECORD UTILITY'}
           </button>
         </div>
       </div>

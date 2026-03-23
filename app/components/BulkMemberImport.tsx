@@ -1,13 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { DatabaseRestore } from './DatabaseRestore';
 
+interface FeePlan {
+    id: string;
+    name: string;
+    duration: number;
+    monthly_fee: number;
+}
+
 interface ImportResult {
     success: number;
     failed: number;
+    subscriptionsCreated: number;
     errors: string[];
 }
 
@@ -16,6 +24,23 @@ export function BulkMemberImport() {
     const [file, setFile] = useState<File | null>(null);
     const [importing, setImporting] = useState(false);
     const [result, setResult] = useState<ImportResult | null>(null);
+    const [feePlans, setFeePlans] = useState<FeePlan[]>([]);
+    const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+
+    useEffect(() => {
+        const fetchFeePlans = async () => {
+            try {
+                const res = await fetch('/api/fee-plans', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFeePlans(data.filter((p: any) => p.is_active));
+                }
+            } catch { /* ignore */ }
+        };
+        if (token) fetchFeePlans();
+    }, [token]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -50,6 +75,79 @@ export function BulkMemberImport() {
                     member.gender = ['male', 'female', 'other'].includes(gender) ? gender : 'other';
                 }
                 else if (header.includes('blood')) member.bloodGroup = values[index];
+                else if (
+                    header === 'payment date' ||
+                    header === 'payment_date' ||
+                    header === 'paymentdate' ||
+                    header === 'last payment' ||
+                    header === 'last_payment' ||
+                    header === 'paid on' ||
+                    header === 'paid date' ||
+                    header === 'date of payment' ||
+                    (header.includes('payment') && header.includes('date')) ||
+                    (header.includes('paid') && header.includes('date'))
+                ) {
+                    const dateVal = values[index]?.trim();
+                    if (dateVal) {
+                        let parsed: Date | null = null;
+                        if (dateVal.includes('/')) {
+                            const parts = dateVal.split('/');
+                            if (parts[0].length === 4) {
+                                // YYYY/MM/DD
+                                parsed = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+                            } else {
+                                // DD/MM/YYYY
+                                parsed = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                            }
+                        } else if (dateVal.includes('-')) {
+                            const parts = dateVal.split('-');
+                            if (parts[0].length === 4) {
+                                // YYYY-MM-DD
+                                parsed = new Date(dateVal);
+                            } else {
+                                // DD-MM-YYYY
+                                parsed = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                            }
+                        }
+                        if (parsed && !isNaN(parsed.getTime())) {
+                            member.paymentDate = parsed.getTime();
+                        }
+                    }
+                }
+                else if (
+                    header === 'admission date' ||
+                    header === 'admission_date' ||
+                    header === 'admissiondate' ||
+                    header === 'date of admission' ||
+                    (header.includes('admission') && header.includes('date'))
+                ) {
+                    const dateVal = values[index]?.trim();
+                    if (dateVal) {
+                        let parsed: Date | null = null;
+                        if (dateVal.includes('/')) {
+                            const parts = dateVal.split('/');
+                            if (parts[0].length === 4) {
+                                // YYYY/MM/DD
+                                parsed = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+                            } else {
+                                // DD/MM/YYYY
+                                parsed = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                            }
+                        } else if (dateVal.includes('-')) {
+                            const parts = dateVal.split('-');
+                            if (parts[0].length === 4) {
+                                // YYYY-MM-DD
+                                parsed = new Date(dateVal);
+                            } else {
+                                // DD-MM-YYYY
+                                parsed = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                            }
+                        }
+                        if (parsed && !isNaN(parsed.getTime())) {
+                            member.admissionDate = parsed.getTime();
+                        }
+                    }
+                }
             });
 
             if (member.name && member.phone) {
@@ -84,7 +182,7 @@ export function BulkMemberImport() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ members })
+                body: JSON.stringify({ members, feePlanId: selectedPlanId || null })
             });
 
             const data = await response.json();
@@ -107,7 +205,7 @@ export function BulkMemberImport() {
     };
 
     const downloadTemplate = () => {
-        const csv = 'Name,Phone Number,Email,Gender,Blood Group\nJohn Doe,1234567890,john@example.com,male,O+\nJane Smith,9876543210,jane@example.com,female,A+';
+        const csv = 'Name,Phone Number,Email,Gender,Blood Group,Payment Date\nJohn Doe,1234567890,john@example.com,male,O+,15/03/2026\nJane Smith,9876543210,jane@example.com,female,A+,01/01/2026';
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -127,11 +225,37 @@ export function BulkMemberImport() {
                     <h3 className="font-bold text-electric-500 mb-2 uppercase tracking-widest text-[10px]">Instructions</h3>
                     <ul className="list-square list-inside text-xs text-industrial-300 space-y-2 font-mono leading-relaxed">
                         <li>Upload a CSV or Excel file with member data</li>
-                        <li>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group</li>
+                        <li>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group, Payment Date</li>
                         <li>Name and Phone Number are required fields</li>
                         <li>Gender must be: male, female, or other (defaults to other if not specified)</li>
-                        <li>Email and Blood Group are optional</li>
+                        <li>Email, Blood Group, and Payment Date are optional</li>
+                        <li>Payment Date format: DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD</li>
+                        <li>If a Fee Plan is selected below and Payment Date is provided, a subscription and payment record will be created automatically</li>
                     </ul>
+                </div>
+
+                {/* Fee Plan Selector */}
+                <div className="mb-6">
+                    <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 border-l-2 border-steelgold-500 pl-2">
+                        Fee Plan (Optional — creates subscription & payment if Payment Date is provided)
+                    </label>
+                    <select
+                        value={selectedPlanId}
+                        onChange={e => setSelectedPlanId(e.target.value)}
+                        className="w-full p-3 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 text-sm font-mono focus:border-electric-500 focus:ring-1 focus:ring-electric-500 outline-none"
+                    >
+                        <option value="">-- No Fee Plan (import members only) --</option>
+                        {feePlans.map(plan => (
+                            <option key={plan.id} value={plan.id}>
+                                {plan.name} — {plan.duration} months — ₹{plan.monthly_fee * plan.duration}
+                            </option>
+                        ))}
+                    </select>
+                    {selectedPlanId && (
+                        <p className="mt-2 text-xs text-steelgold-500 font-mono">
+                            Members with a Payment Date will get a subscription + payment record auto-created.
+                        </p>
+                    )}
                 </div>
 
                 {/* Download Template */}
@@ -183,6 +307,12 @@ export function BulkMemberImport() {
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                 Successfully imported: {result.success}
                             </p>
+                            {result.subscriptionsCreated > 0 && (
+                                <p className="text-steelgold-500 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Subscriptions & payments created: {result.subscriptionsCreated}
+                                </p>
+                            )}
                             {result.failed > 0 && (
                                 <p className="text-red-500 flex items-center gap-2">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>

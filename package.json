@@ -1,6 +1,7 @@
 {
   "name": "gym-ease-nextjs",
   "version": "2.0.0",
+  "description": "Gym Management System - GymEase",
   "private": true,
   "author": {
     "name": "Parallax Machine Inc",
@@ -55,7 +56,7 @@
         "to": "standalone/node_modules/bcryptjs"
       }
     ],
-    "npmRebuild": false
+    "npmRebuild": true
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -71,7 +72,6 @@
     "recharts": "^3.6.0",
     "sonner": "^2.0.3",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
     "tailwind-merge": "^3.1.0"
   },
   "devDependencies": {

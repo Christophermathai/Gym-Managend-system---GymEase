@@ -1,5 +1,5 @@
 import path from 'path';
-import 'better-sqlite3';
+import fs from 'fs';
 
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'gym_ease.db');
 
@@ -8,13 +8,20 @@ let dbInstance: any | null = null;
 export async function initializeDatabase(): Promise<any> {
   let BetterSqlite3;
   try {
+    // Ensure database directory exists
+    const dbDir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dbDir)) {
+      console.log('Creating database directory:', dbDir);
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    console.log('Initializing Database at:', DB_PATH);
     BetterSqlite3 = require('better-sqlite3');
   } catch (e: any) {
-    console.error('FAILED TO LOAD better-sqlite3:', e?.message);
-    throw new Error('Database dependency missing: ' + e?.message);
+    console.error('FAILED TO INITIALIZE DATABASE:', e?.message);
+    throw new Error('Database initialization failed: ' + e?.message);
   }
 
-  console.log('Initializing Database at:', DB_PATH);
   const db = new BetterSqlite3(DB_PATH);
 
   // Enable foreign keys
@@ -115,7 +122,6 @@ function createTables(db: any) {
       is_active BOOLEAN DEFAULT TRUE,
       created_by TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
     )
   `);
@@ -154,6 +160,7 @@ function createTables(db: any) {
       status TEXT NOT NULL CHECK(status IN ('completed', 'pending', 'partial', 'failed')),
       notes TEXT,
       recorded_by TEXT NOT NULL,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
       FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL,
@@ -169,7 +176,7 @@ function createTables(db: any) {
       description TEXT NOT NULL,
       amount REAL NOT NULL,
       expense_date INTEGER NOT NULL,
-      payment_mode TEXT NOT NULL CHECK(payment_mode IN ('cash', 'card', 'bank_transfer', 'cheque')),
+      payment_mode TEXT NOT NULL CHECK(payment_mode IN ('cash', 'card', 'upi', 'bank_transfer', 'cheque')),
       receipt_number TEXT,
       notes TEXT,
       recorded_by TEXT NOT NULL,
@@ -228,7 +235,6 @@ function createTables(db: any) {
       assigned_to TEXT NOT NULL,
       created_by TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (preferred_plan_id) REFERENCES fee_plans(id) ON DELETE SET NULL,
       FOREIGN KEY (converted_to_member_id) REFERENCES members(id) ON DELETE SET NULL,
       FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE RESTRICT,
@@ -266,6 +272,37 @@ function createTables(db: any) {
   db.exec(`
     INSERT OR IGNORE INTO gym_settings (id, gym_name) VALUES (1, 'Gym Ease')
   `);
+
+  // Invalidated tokens table for secure JWT logout
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS invalidated_tokens (
+      token TEXT PRIMARY KEY,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Migration: Add missing columns to gym_settings if they don't exist
+  try {
+    const settingsCols = db.prepare("PRAGMA table_info(gym_settings)").all() as Array<{ name: string }>;
+    const hasAddress = settingsCols.some(col => col.name === 'gym_address');
+    const hasPhone = settingsCols.some(col => col.name === 'gym_phone');
+    const hasEmail = settingsCols.some(col => col.name === 'gym_email');
+
+    if (!hasAddress) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN gym_address TEXT`);
+      console.log('Migration: gym_address column added to gym_settings');
+    }
+    if (!hasPhone) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN gym_phone TEXT`);
+      console.log('Migration: gym_phone column added to gym_settings');
+    }
+    if (!hasEmail) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN gym_email TEXT`);
+      console.log('Migration: gym_email column added to gym_settings');
+    }
+  } catch (error) {
+    console.error('Migration error (gym_settings col):', error);
+  }
 
   // Migration: Add is_personal_training and is_couple_package columns to fee_plans if they don't exist
   try {
@@ -332,7 +369,7 @@ function createTables(db: any) {
           transaction_id TEXT,
           receipt_no TEXT,
           payment_date INTEGER NOT NULL,
-          status TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('completed', 'pending', 'partial', 'failed')),
           notes TEXT,
           recorded_by TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -357,6 +394,51 @@ function createTables(db: any) {
     console.error('Migration error (payments status partial):', error);
     try { db.pragma('foreign_keys = ON'); } catch (_) { }
   }
+
+  // Migration: Support 'upi' in expenses table and handle 'check' vs 'cheque' legacy
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='expenses'").get() as any;
+    const needsUpi = tableInfo?.sql && !tableInfo.sql.includes("'upi'");
+    const hasLegacyCheck = tableInfo?.sql && tableInfo.sql.includes("'check'");
+
+    if (needsUpi || hasLegacyCheck) {
+      console.log('Migration: updating expenses table for upi support and standardizing values...');
+      db.pragma('foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE expenses_v4 (
+          id TEXT PRIMARY KEY,
+          category TEXT NOT NULL CHECK(category IN ('rent', 'utilities', 'equipment', 'salaries', 'marketing', 'miscellaneous')),
+          description TEXT NOT NULL,
+          amount REAL NOT NULL,
+          expense_date INTEGER NOT NULL,
+          payment_mode TEXT NOT NULL CHECK(payment_mode IN ('cash', 'card', 'upi', 'bank_transfer', 'cheque')),
+          receipt_number TEXT,
+          notes TEXT,
+          recorded_by TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE RESTRICT
+        );
+        INSERT INTO expenses_v4 (id, category, description, amount, expense_date, payment_mode, receipt_number, notes, recorded_by, created_at)
+          SELECT id, category, description, amount, expense_date,
+                 CASE WHEN payment_mode = 'check' THEN 'cheque' ELSE payment_mode END,
+                 receipt_number, notes, recorded_by, created_at
+          FROM expenses;
+        DROP TABLE expenses;
+        ALTER TABLE expenses_v4 RENAME TO expenses;
+      `);
+      db.pragma('foreign_keys = ON');
+      console.log('Migration: expenses table updated successfully');
+    }
+  } catch (error) {
+    console.error('Migration error (expenses recreation):', error);
+    try { db.pragma('foreign_keys = ON'); } catch (_) { }
+  }
+
+  // Add is_active to payments if missing
+  try {
+    db.exec("ALTER TABLE payments ADD COLUMN is_active BOOLEAN DEFAULT TRUE");
+    console.log('Added is_active to payments');
+  } catch (_) { /* column already exists */ }
 }
 
 export async function getDatabase(): Promise<any> {

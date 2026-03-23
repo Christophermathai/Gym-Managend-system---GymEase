@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 import { formatCurrency, formatDate } from '@/app/lib/utils';
 import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
-import LottieLoader from './LottieLoader';
+
 
 type ReportType = 'members' | 'payments' | 'expenses' | 'summary' | 'expiring';
 
@@ -241,9 +241,9 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
         yellow: 'text-orange-500',
     };
     return (
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4 shadow-lg">
-            <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">{label}</p>
-            <p className={`text-xl font-mono font-bold ${color ? colorMap[color] : 'text-industrial-50'}`}>{value}</p>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4 shadow-lg min-w-0">
+            <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 truncate" title={label}>{label}</p>
+            <p className={`text-base sm:text-lg lg:text-xl font-mono font-bold truncate ${color ? colorMap[color] : 'text-industrial-50'}`} title={value.toString()}>{value}</p>
         </div>
     );
 }
@@ -297,22 +297,22 @@ function SummaryCards({ result }: { result: ReportResult }) {
                     <StatCard label="Profit Margin" value={`${summary.profitMargin}%`} color={isProfit ? 'green' : 'red'} />
                     <StatCard label="Active Members" value={summary.activeMembers} color="blue" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4">
-                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-green-500 pl-2">Revenue by Type</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
+                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4 min-w-0 overflow-hidden">
+                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-green-500 pl-2 truncate" title="Revenue by Type">Revenue by Type</h4>
                         {Object.entries(summary.revenueByType || {}).map(([t, amt]) => (
-                            <div key={t} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors">
-                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1">{t.replace(/_/g, ' ')}</span>
-                                <span className="font-mono font-bold text-green-500 pr-1">{formatCurrency(amt as number)}</span>
+                            <div key={t} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors overflow-hidden">
+                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1 truncate" title={t.replace(/_/g, ' ')}>{t.replace(/_/g, ' ')}</span>
+                                <span className="font-mono font-bold text-green-500 pr-1 pl-2 truncate" title={formatCurrency(amt as number)}>{formatCurrency(amt as number)}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4">
-                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-red-500 pl-2">Expenses by Category</h4>
+                    <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-4 min-w-0 overflow-hidden">
+                        <h4 className="font-bold text-sm text-industrial-50 mb-3 uppercase tracking-widest border-l-2 border-red-500 pl-2 truncate" title="Expenses by Category">Expenses by Category</h4>
                         {Object.entries(summary.expensesByCategory || {}).map(([cat, amt]) => (
-                            <div key={cat} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors">
-                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1">{cat}</span>
-                                <span className="font-mono font-bold text-red-500 pr-1">{formatCurrency(amt as number)}</span>
+                            <div key={cat} className="flex justify-between py-2 text-sm border-b border-obsidian-700 last:border-0 hover:bg-obsidian-700/30 transition-colors overflow-hidden">
+                                <span className="text-industrial-300 font-mono text-xs uppercase tracking-widest pl-1 truncate" title={cat}>{cat}</span>
+                                <span className="font-mono font-bold text-red-500 pr-1 pl-2 truncate" title={formatCurrency(amt as number)}>{formatCurrency(amt as number)}</span>
                             </div>
                         ))}
                     </div>

@@ -14,17 +14,28 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const memberId = searchParams.get('memberId');
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     let query = `SELECT p.*, m.name as member_name, m.phone as member_phone,
                    COALESCE(p.amount_due, 0) as amount_due,
-                   COALESCE(p.balance, 0) as balance
+                   COALESCE(p.balance, 0) as balance,
+                   COALESCE(p.is_active, 1) as is_active
                  FROM payments p
                  LEFT JOIN members m ON p.member_id = m.id`;
     const params: any[] = [];
+    const conditions: string[] = [];
 
     if (memberId) {
-      query += ` WHERE p.member_id = ?`;
+      conditions.push('p.member_id = ?');
       params.push(memberId);
+    }
+
+    if (!includeInactive) {
+      conditions.push('COALESCE(p.is_active, 1) = 1');
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     query += ` ORDER BY p.payment_date DESC`;
@@ -238,6 +249,76 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating payment:', error);
+    return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const userId = getAuthUserId(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, is_active } = body;
+
+    if (!id || is_active === undefined) {
+      return NextResponse.json({ error: 'Payment ID and is_active required' }, { status: 400 });
+    }
+
+    const db = await getDatabase();
+
+    const payment = await getAsync(db, 'SELECT * FROM payments WHERE id = ?', [id]);
+    if (!payment) {
+      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+    }
+
+    await runAsync(
+      db,
+      'UPDATE payments SET is_active = ? WHERE id = ?',
+      [is_active ? 1 : 0, id]
+    );
+
+    // If this is a membership payment with a linked subscription, update the subscription status
+    if (payment.subscription_id && payment.payment_type === 'membership') {
+      if (!is_active) {
+        // Soft-deleting: cancel the subscription and expire it immediately
+        await runAsync(
+          db,
+          "UPDATE subscriptions SET status = 'cancelled', end_date = ? WHERE id = ?",
+          [Date.now(), payment.subscription_id]
+        );
+      } else {
+        // Restoring: reactivate the subscription and recalculate end_date from fee plan
+        const sub = await getAsync(db, 'SELECT * FROM subscriptions WHERE id = ?', [payment.subscription_id]);
+        if (sub) {
+          const feePlan = await getAsync(db, 'SELECT duration FROM fee_plans WHERE id = ?', [sub.fee_plan_id]);
+          let newEndDate = sub.end_date;
+          if (feePlan && sub.start_date) {
+            const startDate = new Date(sub.start_date);
+            startDate.setMonth(startDate.getMonth() + feePlan.duration);
+            newEndDate = startDate.getTime();
+          }
+          await runAsync(
+            db,
+            "UPDATE subscriptions SET status = 'active', end_date = ? WHERE id = ?",
+            [newEndDate, payment.subscription_id]
+          );
+        }
+      }
+    }
+
+    await runAsync(
+      db,
+      `INSERT INTO audit_log (id, user_id, action, entity_type, entity_id, details, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [generateId('log_'), userId, is_active ? 'RESTORE_PAYMENT' : 'SOFT_DELETE_PAYMENT', 'payment', id, `${is_active ? 'Restored' : 'Soft-deleted'} payment of ${payment.amount}`, Date.now()]
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating payment status:', error);
     return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
 import LottieLoader from './LottieLoader';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Lead {
   id: string;
@@ -78,11 +79,17 @@ export function LeadManagement() {
     }
   };
 
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this lead?')) return;
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/leads/${id}`, {
+      const response = await fetch(`/api/leads/${deleteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -90,9 +97,12 @@ export function LeadManagement() {
       if (response.ok) {
         toast.success('Lead deleted');
         fetchLeads();
+        setTimeout(() => window.location.reload(), 500);
       }
     } catch (error) {
       toast.error('Error deleting lead');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -278,6 +288,16 @@ export function LeadManagement() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Delete Lead?"
+        message="This lead will be permanently deleted. This action cannot be undone."
+        confirmLabel="DELETE"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

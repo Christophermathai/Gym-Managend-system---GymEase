@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Backup {
     name: string;
-    path: string;
     size: number;
     modified: number;
 }
@@ -16,6 +16,7 @@ export function DatabaseRestore() {
     const [backups, setBackups] = useState<Backup[]>([]);
     const [loading, setLoading] = useState(false);
     const [restoring, setRestoring] = useState(false);
+    const [restoreFilename, setRestoreFilename] = useState<string | null>(null);
 
     const fetchBackups = async () => {
         try {
@@ -33,10 +34,12 @@ export function DatabaseRestore() {
         }
     };
 
-    const handleRestore = async (backupPath: string) => {
-        if (!confirm('Are you sure you want to restore this backup? The current database will be backed up first. You will need to restart the application after restore.')) {
-            return;
-        }
+    const handleRestore = async (filename: string) => {
+        setRestoreFilename(filename);
+    };
+
+    const confirmRestore = async () => {
+        if (!restoreFilename) return;
 
         try {
             setRestoring(true);
@@ -46,7 +49,7 @@ export function DatabaseRestore() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ backupPath })
+                body: JSON.stringify({ filename: restoreFilename })
             });
 
             const data = await response.json();
@@ -100,7 +103,7 @@ export function DatabaseRestore() {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => handleRestore(backup.path)}
+                                    onClick={() => handleRestore(backup.name)}
                                     disabled={restoring}
                                     className="w-full sm:w-auto px-6 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded font-bold tracking-widest text-xs uppercase hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
@@ -118,6 +121,16 @@ export function DatabaseRestore() {
                     <p className="text-obsidian-400 text-[10px] mt-2 font-mono">Backups are created automatically every 30 minutes.</p>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={!!restoreFilename}
+                title="Restore Database?"
+                message="The current database will be backed up first. You will need to restart the application after restore. This action will replace all current data."
+                confirmLabel="RESTORE"
+                variant="warning"
+                onConfirm={confirmRestore}
+                onCancel={() => setRestoreFilename(null)}
+            />
         </div>
     );
 }

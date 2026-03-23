@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
         );
 
         // Generate token
-        const token = createToken(userId, email);
+        // Generate token - default to trainer role until profile is setup
+        const token = createToken(userId, email, 'trainer');
 
         return NextResponse.json({ token, userId }, { status: 201 });
     } catch (error) {

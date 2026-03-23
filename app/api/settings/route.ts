@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, getAsync, runAsync } from '@/db';
-import { getAuthUserId } from '@/app/lib/api-utils';
+import { getAuthContext } from '@/app/lib/api-utils';
 
 export async function GET(request: NextRequest) {
     try {
-        const userId = getAuthUserId(request);
-        if (!userId) {
+        const authCtx = await getAuthContext(request);
+        if (!authCtx) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -21,9 +21,13 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
     try {
-        const userId = getAuthUserId(request);
-        if (!userId) {
+        const authCtx = await getAuthContext(request);
+        if (!authCtx) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        if (authCtx.role !== 'owner') {
+            return NextResponse.json({ error: 'Forbidden: Owner role required' }, { status: 403 });
         }
 
         const body = await request.json();

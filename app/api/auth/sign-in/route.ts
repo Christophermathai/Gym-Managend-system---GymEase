@@ -29,12 +29,16 @@ export async function POST(request: NextRequest) {
         [userId, email, hashedPassword]
       );
 
-      const token = createToken(userId, email);
+      // Fetch role
+      const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [userId]);
+      const role = profile?.role || 'trainer'; // Default to trainer if profile not yet setup
+
+      const token = createToken(userId, email, role);
       const response = NextResponse.json({ token, userId });
       response.cookies.set('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: false, // Must be false for local HTTP (Electron 127.0.0.1)
+        sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60,
       });
 
@@ -51,12 +55,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
       }
 
-      const token = createToken(user.id, email);
+      // Fetch role
+      const profile = await getAsync(db, 'SELECT role FROM user_profiles WHERE user_id = ?', [user.id]);
+      const role = profile?.role || 'trainer';
+
+      const token = createToken(user.id, email, role);
       const response = NextResponse.json({ token, userId: user.id });
       response.cookies.set('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: false, // Must be false for local HTTP (Electron 127.0.0.1)
+        sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60,
       });
 

@@ -304,23 +304,37 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           </div>
 
           {/* Member Status Indicator */}
-          {selectedMember && (
-            <div className={`p-4 rounded-lg border ${selectedMember.subscription
-              ? 'bg-electric-500/10 border-electric-500/30'
-              : 'bg-yellow-500/10 border-yellow-500/30'
-              }`}>
-              <p className={`text-xs font-bold uppercase tracking-widest ${selectedMember.subscription ? 'text-electric-500' : 'text-yellow-500'}`}>
-                {selectedMember.subscription
-                  ? '✓ Existing Member — Renewal (No Admission Fee)'
-                  : '★ New Member — First Time Payment'}
-              </p>
-              {selectedMember.subscription && (
-                <p className="text-xs text-industrial-300 mt-2 font-mono">
-                  Current Plan: <span className="text-industrial-50">{selectedMember.subscription.plan_name}</span>
+          {selectedMember && (() => {
+            const sub = selectedMember.subscription;
+            const isExpired = sub && (sub.status === 'expired' || sub.end_date < Date.now());
+
+            return (
+              <div className={`p-4 rounded-lg border ${!sub ? 'bg-yellow-500/10 border-yellow-500/30' :
+                isExpired ? 'bg-red-500/10 border-red-500/30' :
+                  'bg-electric-500/10 border-electric-500/30'
+                }`}>
+                <p className={`text-xs font-bold uppercase tracking-widest ${!sub ? 'text-yellow-500' :
+                  isExpired ? 'text-red-500' :
+                    'text-electric-500'
+                  }`}>
+                  {!sub ? '★ New Member — First Time Payment' :
+                    isExpired ? '⚠ Expired Member — Renewal Required' :
+                      '✓ Existing Member — Renewal (No Admission Fee)'}
                 </p>
-              )}
-            </div>
-          )}
+                {sub && (
+                  <p className="text-xs text-industrial-300 mt-2 font-mono">
+                    {isExpired ? 'Last Plan: ' : 'Current Plan: '}
+                    <span className="text-industrial-50">{sub.plan_name}</span>
+                    {isExpired && sub.end_date && (
+                      <span className="ml-2 text-red-400/80">
+                        (EXPIRED ON {new Date(sub.end_date).toLocaleDateString()})
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Settle Balance Banner */}
           {(() => {

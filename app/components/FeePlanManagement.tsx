@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { ConfirmDialog } from './ConfirmDialog';
 import { formatCurrency } from '@/app/lib/utils';
 import LottieLoader from './LottieLoader';
 
@@ -36,7 +37,7 @@ export function FeePlanManagement() {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/fee-plans', {
+      const response = await fetch('/api/fee-plans?showAll=true', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
@@ -113,11 +114,17 @@ export function FeePlanManagement() {
     }
   };
 
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this fee plan?')) return;
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/fee-plans/${id}`, {
+      const response = await fetch(`/api/fee-plans/${deleteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -125,11 +132,14 @@ export function FeePlanManagement() {
       if (response.ok) {
         toast.success('Fee plan deleted successfully');
         fetchPlans();
+        setTimeout(() => window.location.reload(), 500);
       } else {
         toast.error('Failed to delete fee plan');
       }
     } catch (error) {
       toast.error('Error deleting fee plan');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -242,6 +252,16 @@ export function FeePlanManagement() {
           title="Add Fee Plan"
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Delete Fee Plan?"
+        message="This fee plan will be permanently deleted. Members currently on this plan will not be affected."
+        confirmLabel="DELETE"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }
@@ -347,33 +367,42 @@ function PlanModal({
           </div>
 
           <div className="grid gap-3 pt-2">
-            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
-              <input
-                type="checkbox"
-                checked={plan.is_personal_training || false}
-                onChange={(e) => onChange({ ...plan, is_personal_training: e.target.checked })}
-                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-electric-500 focus:ring-electric-500 rounded-sm"
-              />
+            <label className="flex items-center space-x-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={plan.is_personal_training || false}
+                  onChange={(e) => onChange({ ...plan, is_personal_training: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-obsidian-800 border border-obsidian-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-obsidian-400 after:border-obsidian-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-electric-500 peer-checked:border-electric-500 peer-checked:after:bg-white"></div>
+              </div>
               <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Personal Training Plan</span>
             </label>
 
-            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
-              <input
-                type="checkbox"
-                checked={plan.is_couple_package || false}
-                onChange={(e) => onChange({ ...plan, is_couple_package: e.target.checked })}
-                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-steelgold-500 focus:ring-steelgold-500 rounded-sm"
-              />
+            <label className="flex items-center space-x-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-electric-500 transition-colors">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={plan.is_couple_package || false}
+                  onChange={(e) => onChange({ ...plan, is_couple_package: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-obsidian-800 border border-obsidian-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-obsidian-400 after:border-obsidian-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-steelgold-500 peer-checked:border-steelgold-500 peer-checked:after:bg-white"></div>
+              </div>
               <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Couple Package Plan</span>
             </label>
 
-            <label className="flex items-center gap-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-green-500 transition-colors mt-2">
-              <input
-                type="checkbox"
-                checked={plan.is_active !== undefined ? plan.is_active : true}
-                onChange={(e) => onChange({ ...plan, is_active: e.target.checked })}
-                className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-green-500 focus:ring-green-500 rounded-sm"
-              />
+            <label className="flex items-center space-x-3 cursor-pointer p-2 bg-obsidian-900/50 border border-obsidian-600 rounded hover:border-green-500 transition-colors mt-2">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={plan.is_active !== undefined ? plan.is_active : true}
+                  onChange={(e) => onChange({ ...plan, is_active: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-obsidian-800 border border-obsidian-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-obsidian-400 after:border-obsidian-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:border-green-500 peer-checked:after:bg-white"></div>
+              </div>
               <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Active Plan</span>
             </label>
           </div>

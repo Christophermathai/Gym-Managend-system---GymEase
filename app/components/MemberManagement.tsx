@@ -124,8 +124,9 @@ ${gymName} Team`;
       // Encode message for URL
       const encodedMessage = encodeURIComponent(message);
 
-      // Open WhatsApp with pre-filled message
-      window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+      const { shell } = window.require('electron');
+      await shell.openExternal(`whatsapp://send?phone=91${phoneNumber}&text=${encodedMessage}`);
+
     } catch (error) {
       console.error('Error sending WhatsApp reminder:', error);
       toast.error('Failed to open WhatsApp');
@@ -149,6 +150,7 @@ ${gymName} Team`;
         body: JSON.stringify({
           memberId: editingMember?.id,
           ...formData,
+          isActive: formData.is_active,
         }),
       });
 
@@ -192,6 +194,7 @@ ${gymName} Team`;
         setShowDeleteConfirm(false);
         setMemberToDelete(null);
         fetchMembers();
+        setTimeout(() => window.location.reload(), 500);
       } else {
         toast.error('Failed to delete member');
       }
@@ -520,14 +523,19 @@ ${gymName} Team`;
             </div>
 
             <div className="pt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active || false}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 bg-obsidian-900 border-obsidian-600 text-electric-500 focus:ring-electric-500 rounded-sm"
-                />
-                <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">Active Member</span>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active ?? true}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-6 bg-obsidian-900 border border-obsidian-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-obsidian-400 after:border-obsidian-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-electric-500 peer-checked:border-electric-500 peer-checked:after:bg-white"></div>
+                </div>
+                <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">
+                  {formData.is_active !== false ? 'Active Member' : 'Inactive Member'}
+                </span>
               </label>
             </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync } from '@/db';
+import { getDatabase, runAsync, getAsync } from '@/db';
 import { generateId, generateMemberId } from '@/app/lib/utils';
 import { getAuthUserId } from '@/app/lib/api-utils';
 
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { members } = await request.json();
+        const { members, feePlanId } = await request.json();
 
         if (!Array.isArray(members) || members.length === 0) {
             return NextResponse.json({ error: 'No members provided' }, { status: 400 });
@@ -19,7 +19,17 @@ export async function POST(request: NextRequest) {
         const db = await getDatabase();
         let successCount = 0;
         let failedCount = 0;
+        let subscriptionsCreated = 0;
         const errors: string[] = [];
+
+        // Fetch fee plan once if provided
+        let feePlan: any = null;
+        if (feePlanId) {
+            feePlan = await getAsync(db, 'SELECT * FROM fee_plans WHERE id = ? AND is_active = 1', [feePlanId]);
+            if (!feePlan) {
+                return NextResponse.json({ error: 'Selected fee plan not found or inactive' }, { status: 400 });
+            }
+        }
 
         for (const member of members) {
             try {
@@ -57,11 +67,45 @@ export async function POST(request: NextRequest) {
                         member.phone,
                         member.gender || 'other',
                         member.bloodGroup || null,
-                        Date.now(),
+                        member.paymentDate || Date.now(),
                         1,
                         userId
                     ]
                 );
+
+                // If fee plan selected and payment date provided, create subscription + payment
+                if (feePlan && member.paymentDate) {
+                    console.log(`Creating subscription for ${member.name}, paymentDate: ${member.paymentDate}, plan: ${feePlan.name}`);
+                    const subscriptionId = generateId('sub_');
+                    const paymentId = generateId('pay_');
+
+                    // Calculate end date from payment date + duration
+                    const startDate = new Date(member.paymentDate);
+                    const endDate = new Date(member.paymentDate);
+                    endDate.setMonth(endDate.getMonth() + feePlan.duration);
+
+                    const totalAmount = feePlan.monthly_fee * feePlan.duration;
+
+                    // Create subscription
+                    await runAsync(
+                        db,
+                        `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [subscriptionId, memberId, feePlanId, startDate.getTime(), endDate.getTime(), 'active', userId]
+                    );
+
+                    // Create payment record
+                    await runAsync(
+                        db,
+                        `INSERT INTO payments (id, member_id, subscription_id, amount, amount_due, balance, payment_type, payment_mode, payment_date, status, recorded_by, is_active, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [paymentId, memberId, subscriptionId, totalAmount, totalAmount, 0, 'membership', 'cash', member.paymentDate, 'completed', userId, 1]
+                    );
+
+                    subscriptionsCreated++;
+                } else if (feePlan && !member.paymentDate) {
+                    console.log(`No paymentDate for ${member.name}, skipping subscription`);
+                }
 
                 successCount++;
             } catch (error: any) {
@@ -73,6 +117,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: successCount,
             failed: failedCount,
+            subscriptionsCreated,
             errors
         }, { status: 200 });
 

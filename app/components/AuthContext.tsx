@@ -32,43 +32,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
 
-  // Initialize token from localStorage on mount
+  // Load user on mount using the HttpOnly cookie automatically sent by the browser
   useEffect(() => {
-    const storedToken = localStorage.getItem('authToken');
-    if (storedToken) {
-      setToken(storedToken);
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  // Load user when token is available
-  useEffect(() => {
-    const loadUser = async () => {
+    const checkSession = async () => {
       try {
-        const response = await fetch('/api/users/current-user', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
+        const response = await fetch('/api/users/current-user');
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+          setToken('http-only-cookie-active');
+        } else {
+          setToken(null);
+          setUser(null);
         }
       } catch (error) {
-        console.error('Failed to load user:', error);
+        console.error('Failed to check session:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (token) {
-      loadUser();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+    checkSession();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     const response = await fetch('/api/auth/sign-in', {
@@ -81,9 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Sign in failed');
     }
 
-    const { token: newToken } = await response.json();
-    localStorage.setItem('authToken', newToken);
-    setToken(newToken);
+    setToken('http-only-cookie-active');
+    const userRes = await fetch('/api/users/current-user');
+    if (userRes.ok) {
+      setUser(await userRes.json());
+    }
   };
 
   const signUp = async (email: string, password: string) => {
@@ -97,13 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Sign up failed');
     }
 
-    const { token: newToken } = await response.json();
-    localStorage.setItem('authToken', newToken);
-    setToken(newToken);
+    setToken('http-only-cookie-active');
+    const userRes = await fetch('/api/users/current-user');
+    if (userRes.ok) {
+      setUser(await userRes.json());
+    }
   };
 
   const signOut = async () => {
-    localStorage.removeItem('authToken');
     await fetch('/api/auth/sign-out', { method: 'POST' });
     setToken(null);
     setUser(null);
@@ -114,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ name, role, phone }),
     });
@@ -124,9 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload user
-    const userResponse = await fetch('/api/users/current-user', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const userResponse = await fetch('/api/users/current-user');
 
     if (userResponse.ok) {
       const userData = await userResponse.json();

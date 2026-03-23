@@ -1,12 +1,17 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
-const { spawn, exec, execSync } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 
 let mainWindow;
 let nextServerProcess;
 let isShuttingDown = false;
+
+// ✅ Override app name in dev so AppData path is correct
+if (!app.isPackaged) {
+    app.setName('gym-ease-nextjs');
+}
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -30,11 +35,12 @@ if (!gotTheLock) {
         }
     });
 
-    // Store DB in AppData so it persists after updates/reinstalls
     const userDataPath = app.getPath('userData');
     const dbPath = path.join(userDataPath, 'gym_ease.db');
 
-    // Ensure DB file exists (copy default if new install)
+    // ✅ Root of the Next.js project (one level up from electron/ folder)
+    const projectRoot = path.join(__dirname, '..');
+
     function ensureDatabase() {
         if (!fs.existsSync(dbPath)) {
             console.log('Database not found in AppData, checking for template...');
@@ -42,10 +48,8 @@ if (!gotTheLock) {
         console.log('Database Path:', dbPath);
     }
 
-    // Backup interval reference
     let backupInterval = null;
 
-    // Backup database to Documents folder
     function backupDatabase() {
         try {
             if (!fs.existsSync(dbPath)) return;
@@ -64,24 +68,36 @@ if (!gotTheLock) {
                 fs.closeSync(fd);
                 fs.copyFileSync(dbPath, backupPath);
                 console.log('Database backed up:', backupPath);
-            } catch {
-                console.log('Database busy, skipping this backup cycle');
+
+                // Rotation logic: Keep latest 5
+                const files = fs.readdirSync(backupDir)
+                    .filter(f => f.startsWith('gym_ease_backup_') && f.endsWith('.db'))
+                    .map(f => ({
+                        name: f,
+                        time: fs.statSync(path.join(backupDir, f)).mtimeMs
+                    }))
+                    .sort((a, b) => b.time - a.time); // newest first
+
+                const toDelete = allBackups.slice(5); // keep top 5, delete rest
+                for (const file of toDelete) {
+                    fs.unlinkSync(path.join(backupDir, file.name));
+                    console.log('Deleted old backup:', file.name);
+                }
+            } catch (cleanupErr) {
+                console.error('Backup cleanup failed:', cleanupErr.message);
             }
+
         } catch (err) {
             console.error('Backup failed:', err);
         }
     }
 
-    // Start automatic backup every 30 minutes
     function startAutoBackup() {
         backupDatabase();
-        backupInterval = setInterval(() => {
-            backupDatabase();
-        }, 30 * 60 * 1000);
+        backupInterval = setInterval(backupDatabase, 30 * 60 * 1000);
         console.log('Automatic backup started (every 30 minutes)');
     }
 
-    // Stop automatic backup
     function stopAutoBackup() {
         if (backupInterval) {
             clearInterval(backupInterval);
@@ -90,7 +106,6 @@ if (!gotTheLock) {
         }
     }
 
-    // ✅ FIX 1: Kill any process occupying the port before starting
     function clearPort(port) {
         if (process.platform === 'win32') {
             try {
@@ -99,16 +114,11 @@ if (!gotTheLock) {
                     { stdio: 'ignore', shell: true }
                 );
                 console.log(`Cleared port ${port}`);
-            } catch (e) {
-                // No process on port, that's fine
-            }
+            } catch (e) { }
         } else {
             try {
                 execSync(`lsof -ti:${port} | xargs kill -9`, { stdio: 'ignore', shell: true });
-                console.log(`Cleared port ${port}`);
-            } catch (e) {
-                // No process on port, that's fine
-            }
+            } catch (e) { }
         }
     }
 
@@ -116,64 +126,90 @@ if (!gotTheLock) {
         return new Promise((resolve, reject) => {
             const port = 3000;
 
-            // ✅ FIX 1: Clear port before starting
             clearPort(port);
 
-            // Small delay after clearing port to ensure it's fully released
             setTimeout(() => {
 
-                // ✅ FIX 3: Check if server is already running after port clear
+                // Check if server already running
                 const req = http.get(`http://localhost:${port}`, (res) => {
                     console.log('Server already running, reusing.');
                     resolve(port);
                 });
 
                 req.on('error', () => {
-                    // Port is truly free now, start fresh
                     console.log('Starting Next.js server...');
 
                     const isDev = !app.isPackaged;
-
-                    let cmd, args;
+                    let cmd, args, cwd;
 
                     if (isDev) {
                         cmd = 'node';
-                        args = ['node_modules/next/dist/bin/next', 'dev'];
+                        args = [
+                            path.join(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+                            'dev'
+                        ];
+                        cwd = projectRoot;
                     } else {
                         const serverPath = path.join(process.resourcesPath, 'standalone', 'server.js');
-                        cmd = 'node';
+                        // Use Electron's own node runtime in packaged mode
+                        cmd = process.execPath;
                         args = [serverPath];
+                        cwd = path.join(process.resourcesPath, 'standalone');
+                    }
+
+                    // Generate or load JWT secret
+                    let jwtSecret;
+                    const secretPath = path.join(userDataPath, 'secret.key');
+                    // Ensure userData directory exists
+                    if (!fs.existsSync(userDataPath)) {
+                        fs.mkdirSync(userDataPath, { recursive: true });
+                    }
+
+                    if (fs.existsSync(secretPath)) {
+                        jwtSecret = fs.readFileSync(secretPath, 'utf8');
+                        console.log('Using stored JWT_SECRET');
+                    } else {
+                        jwtSecret = require('crypto').randomBytes(32).toString('hex');
+                        fs.writeFileSync(secretPath, jwtSecret, 'utf8');
+                        console.log('Generated new JWT_SECRET');
                     }
 
                     const env = {
                         ...process.env,
                         DB_PATH: dbPath,
                         PORT: port,
-                        JWT_SECRET: 'gym-ease-production-secret-key-change-it'
+                        HOSTNAME: '127.0.0.1',
+                        ELECTRON_RUN_AS_NODE: '1', // Critical for using process.execPath as node
+                        JWT_SECRET: jwtSecret
                     };
 
-                    // ✅ FIX: detached false keeps process tied to Electron
                     nextServerProcess = spawn(cmd, args, {
-                        cwd: isDev ? process.cwd() : path.join(process.resourcesPath, 'standalone'),
+                        cwd,
                         env,
                         shell: false,
-                        detached: false, // ✅ Changed from true to false
+                        detached: false,
                     });
-                    // ✅ Removed unref()
+
+                    // ✅ FIX: Guard flag so resolve is only called ONCE
+                    let resolved = false;
 
                     nextServerProcess.stdout.on('data', (data) => {
-                        console.log(`Next.js: ${data}`);
-                        if (data.toString().includes('Ready in') || data.toString().includes('started server on')) {
-                            setTimeout(() => resolve(port), 1000);
+                        const msg = data.toString();
+                        console.log(`Next.js: ${msg}`);
+
+                        // ✅ Resolve on Ready signal — only once
+                        if (!resolved && (msg.includes('Ready in') || msg.includes('started server on'))) {
+                            resolved = true;
+                            console.log('Next.js server is ready!');
+                            setTimeout(() => resolve(port), 500); // small buffer after ready
                         }
                     });
 
-                    // ✅ FIX 2: Properly suppress non-critical errors with early return
                     nextServerProcess.stderr.on('data', (data) => {
                         const msg = data.toString();
                         console.error(`Next.js Error: ${msg}`);
 
-                        // Early return for harmless errors — never reach dialog
+                        // Suppress non-critical errors
                         if (
                             msg.includes('EADDRINUSE') ||
                             msg.includes('ExperimentalWarning') ||
@@ -181,14 +217,16 @@ if (!gotTheLock) {
                             msg.includes('punycode')
                         ) {
                             console.log('Suppressed non-critical error:', msg.trim());
-                            return; // ✅ Stop here
+                            return;
                         }
 
-                        // Only show dialog for real fatal errors
                         if (
                             msg.includes('MODULE_NOT_FOUND') ||
                             msg.includes('dependency missing') ||
-                            msg.includes('Cannot find module')
+                            msg.includes('Cannot find module') ||
+                            msg.includes('FAILED TO LOAD better-sqlite3') ||
+                            msg.includes('Database dependency missing') ||
+                            msg.includes('JWT_SECRET environment variable is missing')
                         ) {
                             dialog.showErrorBox('Backend Error', msg);
                         }
@@ -198,16 +236,22 @@ if (!gotTheLock) {
                         if (!isShuttingDown && code !== 0 && code !== null) {
                             dialog.showErrorBox(
                                 'Server Stopped',
-                                `Next.js process exited with code ${code}.\nIf Gym Ease is already open, please use the existing window.`
+                                `Next.js process exited with code ${code}.`
                             );
                         }
                     });
 
-                    // Fallback resolve after timeout
-                    setTimeout(() => resolve(port), 5000);
+                    // ✅ Fallback: if stdout never fires Ready, resolve after 15s
+                    setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            console.log('Fallback resolve after 15s timeout');
+                            resolve(port);
+                        }
+                    }, 15000);
                 });
 
-            }, 300); // ✅ 300ms delay after port clear to ensure full release
+            }, 300);
         });
     };
 
@@ -217,21 +261,17 @@ if (!gotTheLock) {
         console.log('Force killing Next.js server...');
 
         if (process.platform === 'win32') {
-            // Primary: kill by PID tree
             try {
                 execSync(`taskkill /PID ${nextServerProcess.pid} /T /F`, { stdio: 'ignore' });
             } catch (e) {
                 console.error('Taskkill by PID failed:', e.message);
             }
-            // ✅ Backup: kill by port in case PID is stale
             try {
                 execSync(
                     `for /f "tokens=5" %a in ('netstat -aon ^| find ":3000"') do taskkill /PID %a /F`,
                     { stdio: 'ignore', shell: true }
                 );
-            } catch (e) {
-                // Silently ignore if no process found on port
-            }
+            } catch (e) { }
         } else {
             try {
                 process.kill(-nextServerProcess.pid, 'SIGKILL');
@@ -241,7 +281,6 @@ if (!gotTheLock) {
         nextServerProcess = null;
     }
 
-    // ✅ FIX: 500ms delay ensures Next.js is fully dead before installer takes over
     function fastQuit() {
         if (isShuttingDown) return;
         isShuttingDown = true;
@@ -250,13 +289,18 @@ if (!gotTheLock) {
         killNextServer();
         setTimeout(() => {
             app.exit(0);
-        }, 500); // ✅ Give process time to die
+        }, 500);
     }
 
-    function createWindow(port) {
+    app.whenReady().then(async () => {
+        ensureDatabase();
+        startAutoBackup();
+
         mainWindow = new BrowserWindow({
             width: 1280,
             height: 800,
+            show: true,
+            backgroundColor: '#171717',
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -264,51 +308,53 @@ if (!gotTheLock) {
             title: 'Gym Ease'
         });
 
-        mainWindow.loadURL(`http://localhost:${port}`);
+        // ✅ Splash screen shown instantly
+        mainWindow.loadURL(
+            'data:text/html,<!DOCTYPE html><html><head><style>*{margin:0;padding:0}body{background:%23171717;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:20px;font-family:Segoe UI,sans-serif;color:white}.logo{font-size:2.2rem;font-weight:700;letter-spacing:8px}.sub{font-size:0.7rem;letter-spacing:4px;color:%23555}.bar{width:120px;height:2px;background:%23222;border-radius:2px;overflow:hidden}.fill{height:100%;background:white;animation:l 8s ease-in-out forwards}@keyframes l{0%{width:0%}50%{width:70%}90%{width:92%}100%{width:100%}}</style></head><body><div class=logo>GYM EASE</div><div class=sub>LOADING YOUR WORKSPACE</div><div class=bar><div class=fill></div></div></body></html>'
+        );
 
         if (!app.isPackaged) {
             mainWindow.webContents.openDevTools();
         }
-    }
 
-    app.whenReady().then(async () => {
-        ensureDatabase();
-        startAutoBackup();
-        const port = await startNextServer();
-        createWindow(port);
+        // ✅ Start server — load real app once ready signal fires
+        try {
+            const port = await startNextServer();
+            console.log(`Loading app on port ${port}`);
+            mainWindow.loadURL(`http://localhost:${port}`);
+        } catch (err) {
+            console.error('Failed to start server:', err.message);
+            dialog.showErrorBox('Startup Failed', 'Could not start the Gym Ease server. Please restart the app.');
+            fastQuit();
+        }
 
         app.on('activate', () => {
             if (BrowserWindow.getAllWindows().length === 0) {
-                createWindow(port);
+                mainWindow.loadURL(`http://localhost:3000`);
             }
         });
     });
 
     /* ================== APP SHUTDOWN HANDLERS ================== */
 
-    // Fired when all windows are closed
     app.on('window-all-closed', () => {
         if (process.platform !== 'darwin') {
             fastQuit();
         }
     });
 
-    // Fired when app is quitting (Cmd+Q, Alt+F4, installer close, etc.)
     app.on('before-quit', () => {
         fastQuit();
     });
 
-    // Fired when Node process exits
     process.on('exit', () => {
         killNextServer();
     });
 
-    // Fired on Ctrl+C (dev mode)
     process.on('SIGINT', () => {
         fastQuit();
     });
 
-    // Fired on system kill / shutdown
     process.on('SIGTERM', () => {
         fastQuit();
     });

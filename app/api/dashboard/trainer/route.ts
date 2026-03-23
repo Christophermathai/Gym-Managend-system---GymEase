@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
        LEFT JOIN subscriptions s ON m.id = s.member_id
        WHERE m.is_active = 1 
        AND (
-         p.status IN ('pending', 'partial') AND (p.balance > 0 OR p.status = 'pending')
+         p.status IN ('pending', 'partial') AND (p.balance > 0 OR p.status = 'pending') AND COALESCE(p.is_active, 1) = 1
          OR m.id NOT IN (SELECT member_id FROM subscriptions WHERE end_date >= ? AND status = 'active')
        )`,
       [now]
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       `SELECT DISTINCT m.id
        FROM members m
        INNER JOIN payments p ON m.id = p.member_id
-       WHERE m.is_active = 1 AND p.status = 'partial' AND p.balance > 0`,
+       WHERE m.is_active = 1 AND p.status = 'partial' AND p.balance > 0 AND COALESCE(p.is_active, 1) = 1`,
       []
     );
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
          AND s.end_date >= ?
          AND s.status = 'active'
          AND m.id NOT IN (
-           SELECT member_id FROM payments WHERE status = 'partial' AND balance > 0
+           SELECT member_id FROM payments WHERE status = 'partial' AND balance > 0 AND COALESCE(is_active, 1) = 1
          )`,
       [now]
     );

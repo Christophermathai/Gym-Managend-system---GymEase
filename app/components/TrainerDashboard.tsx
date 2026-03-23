@@ -92,6 +92,7 @@ export function TrainerDashboard() {
       }, 500);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [showAddLeadModal]);
 
   const fetchDashboardData = async () => {
@@ -210,7 +211,7 @@ export function TrainerDashboard() {
     );
   }
 
-  const { overview, expiringMembers, recentLeads } = data;
+  const { overview, expiringMembers } = data;
   const paidCount = overview.paidMembersCount || 0;
   const partialCount = overview.partialMembersCount || 0;
   const unpaidCount = Math.max(0, overview.totalActiveMembers - paidCount - partialCount);
@@ -324,32 +325,32 @@ export function TrainerDashboard() {
           {/* Analytics Cards */}
           {/* Analytics Cards */}
           <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" variants={itemVariants}>
-            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden">
+            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden min-w-0">
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-electric-500" />
-              <div className="flex items-center">
-                <span className="p-3 bg-obsidian-700 border border-electric-500/30 rounded" title="PX_SEC_404">
+              <div className="flex items-center min-w-0">
+                <span className="p-3 bg-obsidian-700 border border-electric-500/30 rounded flex-shrink-0" title="PX_SEC_404">
                   <svg className="w-5 h-5 text-electric-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857" />
                   </svg>
                 </span>
-                <div className="ml-4">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Active Members</p>
-                  <p className="text-2xl font-mono font-bold text-industrial-50">{overview.totalActiveMembers}</p>
+                <div className="ml-4 min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">Active Members</p>
+                  <p className="text-lg sm:text-2xl font-mono font-bold text-industrial-50 truncate" title={overview.totalActiveMembers.toString()}>{overview.totalActiveMembers}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden">
+            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden min-w-0">
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
-              <div className="flex items-center">
-                <div className="p-3 bg-obsidian-700 border border-red-500/30 rounded">
+              <div className="flex items-center min-w-0">
+                <div className="p-3 bg-obsidian-700 border border-red-500/30 rounded flex-shrink-0">
                   <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
-                <div className="ml-4">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Pending</p>
-                  <p className="text-2xl font-mono font-bold text-red-500">{overview.pendingPaymentsCount}</p>
+                <div className="ml-4 min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">Pending</p>
+                  <p className="text-lg sm:text-2xl font-mono font-bold text-red-500 truncate" title={overview.pendingPaymentsCount.toString()}>{overview.pendingPaymentsCount}</p>
                 </div>
               </div>
             </div>
@@ -362,24 +363,24 @@ export function TrainerDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
-                <div className="ml-4">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">New Admissions</p>
-                  <p className="text-2xl font-mono font-bold text-green-500">{overview.newAdmissionsMonth}</p>
+                <div className="ml-4 min-w-0">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">New Admissions</p>
+                  <p className="text-lg sm:text-2xl font-mono font-bold text-green-500 truncate" title={overview.newAdmissionsMonth.toString()}>{overview.newAdmissionsMonth}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden">
+            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg p-6 relative overflow-hidden min-w-0">
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500" />
-              <div className="flex items-center">
-                <div className="p-3 bg-obsidian-700 border border-orange-500/30 rounded">
+              <div className="flex items-center min-w-0">
+                <div className="p-3 bg-obsidian-700 border border-orange-500/30 rounded flex-shrink-0">
                   <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="ml-4">
-                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Expiring Soon</p>
-                  <p className="text-2xl font-mono font-bold text-orange-500">{overview.expiringMemberships}</p>
+                <div className="ml-4 min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">Expiring Soon</p>
+                  <p className="text-lg sm:text-2xl font-mono font-bold text-orange-500 truncate" title={overview.expiringMemberships.toString()}>{overview.expiringMemberships}</p>
                 </div>
               </div>
             </div>

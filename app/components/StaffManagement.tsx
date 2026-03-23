@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/app/lib/utils';
 import LottieLoader from './LottieLoader';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Staff {
   id: string;
@@ -24,6 +25,7 @@ export function StaffManagement() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState<Partial<Staff>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStaff();
@@ -48,49 +50,69 @@ export function StaffManagement() {
     }
   };
 
-  const handleAdd = async () => {
+  const handleSave = async () => {
     // Validate required fields
-    if (!formData.name || !formData.role || !formData.phone || !formData.salary || !formData.joining_date) {
+    if (!formData.name || !formData.role || !formData.phone || formData.salary === undefined || !formData.joining_date) {
       toast.error('Please fill all required fields');
       return;
     }
 
     // Additional validation for trainers
     if (formData.role === 'trainer') {
-      if (!formData.email || !formData.password) {
-        toast.error('Email and password are required for trainers');
+      if (!formData.email) {
+        toast.error('Email is required for trainers');
+        return;
+      }
+      if (!editingId && !formData.password) {
+        toast.error('Password is required for new trainers');
         return;
       }
     }
 
     try {
-      const response = await fetch('/api/staff', {
-        method: 'POST',
+      const url = editingId ? `/api/staff/${editingId}` : '/api/staff';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        ...formData,
+        isActive: formData.is_active,
+        joiningDate: formData.joining_date
+      };
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        toast.success('Staff added successfully');
+        toast.success(`Staff ${editingId ? 'updated' : 'added'} successfully`);
         setShowAddModal(false);
         setFormData({});
+        setEditingId(null);
         fetchStaff();
       } else {
-        toast.error('Failed to add staff');
+        toast.error(`Failed to ${editingId ? 'update' : 'add'} staff`);
       }
     } catch (error) {
-      toast.error('Error adding staff');
+      toast.error(`Error ${editingId ? 'updating' : 'adding'} staff`);
     }
   };
 
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/staff/${id}`, {
+      const response = await fetch(`/api/staff/${deleteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -98,9 +120,12 @@ export function StaffManagement() {
       if (response.ok) {
         toast.success('Staff removed');
         fetchStaff();
+        setTimeout(() => window.location.reload(), 500);
       }
     } catch (error) {
       toast.error('Error removing staff');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -117,7 +142,11 @@ export function StaffManagement() {
       <div className="flex justify-between items-center mb-6 border-b border-obsidian-700 pb-4">
         <h2 className="text-2xl font-bold text-industrial-50 font-sans tracking-tight">Staff</h2>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setFormData({});
+            setEditingId(null);
+            setShowAddModal(true);
+          }}
           className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 transition-colors flex items-center gap-2 text-sm font-medium"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -165,7 +194,17 @@ export function StaffManagement() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                      <button
+                        onClick={() => {
+                          setFormData(s);
+                          setEditingId(s.id);
+                          setShowAddModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-steelgold-500/10 text-steelgold-500 border border-steelgold-500/30 rounded text-xs font-bold tracking-wider hover:bg-steelgold-500/20 transition-colors uppercase"
+                      >
+                        EDIT
+                      </button>
                       <button
                         onClick={() => handleDelete(s.id)}
                         className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/30 rounded text-xs font-bold tracking-wider hover:bg-red-500/20 transition-colors uppercase"
@@ -191,7 +230,9 @@ export function StaffManagement() {
       {showAddModal && (
         <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">Add Staff Member</h3>
+            <h3 className="text-xl font-bold mb-6 text-industrial-50 border-b border-obsidian-700 pb-2">
+              {editingId ? 'Edit Staff Member' : 'Add Staff Member'}
+            </h3>
 
             <div className="space-y-4">
               <div>
@@ -243,7 +284,7 @@ export function StaffManagement() {
                 )}
               </div>
 
-              {formData.role === 'trainer' && (
+              {formData.role === 'trainer' && !editingId && (
                 <div>
                   <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Password *</label>
                   <input
@@ -279,25 +320,58 @@ export function StaffManagement() {
                   />
                 </div>
               </div>
+
+              {editingId && (
+                <div className="pt-2">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active ?? true}
+                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-6 bg-obsidian-900 border border-obsidian-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-obsidian-400 after:border-obsidian-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-electric-500 peer-checked:border-electric-500 peer-checked:after:bg-white"></div>
+                    </div>
+                    <span className="text-sm font-bold text-industrial-300 uppercase tracking-widest">
+                      {formData.is_active !== false ? 'Active Account' : 'Inactive Account'}
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="mt-8 pt-4 border-t border-obsidian-700 flex justify-end space-x-3">
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setFormData({});
+                  setEditingId(null);
+                }}
                 className="px-4 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded hover:text-industrial-50 text-sm font-medium transition-colors"
               >
                 CANCEL
               </button>
               <button
-                onClick={handleAdd}
+                onClick={handleSave}
                 className="px-4 py-2 bg-electric-500 text-white rounded hover:bg-electric-600 text-sm font-medium transition-colors"
               >
-                ADD STAFF
+                {editingId ? 'SAVE CHANGES' : 'ADD STAFF'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Remove Staff?"
+        message="This staff member will be permanently removed. This action cannot be undone."
+        confirmLabel="REMOVE"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

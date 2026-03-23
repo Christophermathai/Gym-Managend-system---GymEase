@@ -1,8 +1,6 @@
-
-const Database = require('better-sqlite3');
-
-const DEPLOYED_DB_PATH = 'd:\\Freellace\\Gym-ease\\gym-ease-nextjs\\deployed_gym_ease.db';
-const CURRENT_DB_PATH = 'd:\\Freellace\\Gym-ease\\gym-ease-nextjs\\gym_ease.db';
+const path = require('path');
+const DEPLOYED_DB_PATH = path.join(__dirname, 'deployed_gym_ease.db');
+const CURRENT_DB_PATH = path.join(__dirname, 'gym_ease.db');
 
 async function migrate() {
     console.log('--- STARTING MIGRATION ---');

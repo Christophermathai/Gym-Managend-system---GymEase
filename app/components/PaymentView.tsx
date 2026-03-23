@@ -165,33 +165,33 @@ export function PaymentView() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-electric-500 transition-colors">
-          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-electric-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-electric-500 transition-colors min-w-0 overflow-hidden">
+          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2 truncate">
+            <svg className="w-4 h-4 text-electric-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
             Total Payments
           </p>
-          <p className="text-3xl font-mono text-industrial-50">{filteredPayments.length}</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-mono text-industrial-50 truncate" title={filteredPayments.length.toString()}>{filteredPayments.length}</p>
         </div>
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-green-500 transition-colors">
-          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-green-500 transition-colors min-w-0 overflow-hidden">
+          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2 truncate">
+            <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             Amount Collected
           </p>
-          <p className="text-3xl font-mono text-green-500">{formatCurrency(totalAmount)}</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-mono text-green-500 truncate" title={formatCurrency(totalAmount)}>{formatCurrency(totalAmount)}</p>
         </div>
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-red-500 transition-colors">
-          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-red-500 transition-colors min-w-0 overflow-hidden">
+          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2 truncate">
+            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
             Balance Due
           </p>
-          <p className="text-3xl font-mono text-red-500">{formatCurrency(totalOutstanding)}</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-mono text-red-500 truncate" title={formatCurrency(totalOutstanding)}>{formatCurrency(totalOutstanding)}</p>
         </div>
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-orange-500 transition-colors">
-          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg p-6 group hover:border-orange-500 transition-colors min-w-0 overflow-hidden">
+          <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 flex items-center gap-2 truncate">
+            <svg className="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
             Partial Payments
           </p>
-          <p className="text-3xl font-mono text-orange-500">{totalPartial}</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-mono text-orange-500 truncate" title={totalPartial.toString()}>{totalPartial}</p>
         </div>
       </div>
 

@@ -231,7 +231,7 @@ export function Dashboard() {
               <AddMemberModal isOpen={showAddMemberModal} onClose={() => setShowAddMemberModal(false)} onSuccess={triggerRefresh} />
               <RecordPaymentModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} onSuccess={triggerRefresh} />
               <AddLeadModal isOpen={showAddLeadModal} onClose={() => setShowAddLeadModal(false)} onSuccess={triggerRefresh} />
-              <AddUtilityModal isOpen={showAddUtilityModal} onClose={() => setShowAddUtilityModal(false)} onSuccess={() => { triggerRefresh(); setActiveTab('expenses'); }} />
+              <AddUtilityModal isOpen={showAddUtilityModal} onClose={() => setShowAddUtilityModal(false)} onSuccess={() => { triggerRefresh(); setShowAddUtilityModal(false); }} />
             </>
           )}
         </div>

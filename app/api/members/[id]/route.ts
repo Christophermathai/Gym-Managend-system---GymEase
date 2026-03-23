@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
     if (updateData.email !== undefined) updateFields.email = updateData.email;
     if (updateData.gender !== undefined) updateFields.gender = updateData.gender;
     if (updateData.bloodGroup !== undefined) updateFields.blood_group = updateData.bloodGroup;
-    if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive;
+    if (updateData.isActive !== undefined) updateFields.is_active = updateData.isActive ? 1 : 0;
 
     let updateQuery = 'UPDATE members SET ';
     const updateParams: any[] = [];

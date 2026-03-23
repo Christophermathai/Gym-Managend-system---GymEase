@@ -187,23 +187,23 @@ export function OwnerDashboard({ onViewUnpaidMembers, onViewPartialMembers }: Ow
 
           <motion.div className="flex-1 bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 relative overflow-hidden group flex items-center" variants={itemVariants}>
             <div className="absolute top-0 left-0 w-1 h-full bg-steelgold-500"></div>
-            <div className="flex items-center w-full">
-              <div className="p-4 bg-obsidian-900 border border-obsidian-700 rounded lg:p-5">
-                <svg className="w-6 h-6 lg:w-8 lg:h-8 text-steelgold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center w-full min-w-0">
+              <div className="p-3 bg-obsidian-900 border border-obsidian-700 rounded lg:p-5 flex-shrink-0">
+                <svg className="w-5 h-5 lg:w-8 lg:h-8 text-steelgold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <div className="ml-5 lg:ml-6 flex-1">
-                <p className="text-xs lg:text-sm font-bold text-industrial-400 uppercase tracking-widest mb-2">Pending Payments</p>
-                <div className="flex flex-col">
-                  <div className="flex items-baseline gap-3">
-                    <p className="text-3xl lg:text-4xl font-mono font-bold text-industrial-50">
+              <div className="ml-3 lg:ml-6 flex-1 min-w-0">
+                <p className="text-[10px] lg:text-sm font-bold text-industrial-400 uppercase tracking-widest mb-1 truncate">Pending Payments</p>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <p className="text-xl sm:text-2xl lg:text-4xl font-mono font-bold text-industrial-50 truncate" title={overview.pendingPaymentsCount.toString()}>
                       {overview.pendingPaymentsCount}
                     </p>
-                    <p className="text-sm lg:text-base font-mono text-steelgold-500">{formatCurrency(overview.pendingPaymentsAmount)}</p>
+                    <p className="text-[10px] sm:text-xs lg:text-base font-mono text-steelgold-500 truncate" title={formatCurrency(overview.pendingPaymentsAmount)}>{formatCurrency(overview.pendingPaymentsAmount)}</p>
                   </div>
-                  <p className="text-[10px] lg:text-xs font-bold text-industrial-400 mt-2 uppercase tracking-wider">
-                    Total Members With Overdue Balance
+                  <p className="text-[9px] lg:text-xs font-bold text-industrial-400 mt-1 uppercase tracking-wider truncate">
+                    Overdue Balance
                   </p>
                 </div>
               </div>
@@ -212,21 +212,21 @@ export function OwnerDashboard({ onViewUnpaidMembers, onViewPartialMembers }: Ow
 
           <motion.div className="flex-1 bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 relative overflow-hidden group flex items-center" variants={itemVariants}>
             <div className={`absolute top-0 left-0 w-1 h-full ${overview.netProfitMonth >= 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <div className="flex items-center w-full">
-              <div className="p-4 bg-obsidian-900 border border-obsidian-700 rounded lg:p-5">
-                <svg className={`w-6 h-6 lg:w-8 lg:h-8 ${overview.netProfitMonth >= 0 ? 'text-green-500' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center w-full min-w-0">
+              <div className="p-3 bg-obsidian-900 border border-obsidian-700 rounded lg:p-5 flex-shrink-0">
+                <svg className={`w-5 h-5 lg:w-8 lg:h-8 ${overview.netProfitMonth >= 0 ? 'text-green-500' : 'text-red-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <div className="ml-5 lg:ml-6 flex-1">
-                <p className="text-xs lg:text-sm font-bold text-industrial-400 uppercase tracking-widest mb-2">Net Profit (Month)</p>
-                <div className="flex flex-col">
-                  <p className={`text-3xl lg:text-4xl font-mono font-bold ${overview.netProfitMonth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <div className="ml-3 lg:ml-6 flex-1 min-w-0">
+                <p className="text-[10px] lg:text-sm font-bold text-industrial-400 uppercase tracking-widest mb-1 truncate">Net Profit (Month)</p>
+                <div className="flex flex-col min-w-0">
+                  <p className={`text-lg sm:text-xl lg:text-4xl font-mono font-bold truncate ${overview.netProfitMonth >= 0 ? 'text-green-500' : 'text-red-500'}`} title={formatCurrency(overview.netProfitMonth)}>
                     {formatCurrency(overview.netProfitMonth)}
                   </p>
-                  <div className="flex justify-between mt-2 text-[10px] lg:text-xs font-bold uppercase tracking-wider">
-                    <span className="text-industrial-400">Rev: <span className="text-electric-500 font-mono">{formatCurrency(overview.monthRevenue)}</span></span>
-                    <span className="text-industrial-400 ml-3">Exp: <span className="text-red-400 font-mono">{formatCurrency(overview.monthExpenses)}</span></span>
+                  <div className="flex flex-col md:flex-row md:justify-between mt-1 text-[8px] sm:text-[9px] lg:text-xs font-bold uppercase tracking-wider gap-1 md:gap-3">
+                    <span className="text-industrial-400 truncate" title={formatCurrency(overview.monthRevenue)}>Rev: <span className="text-electric-500 font-mono">{formatCurrency(overview.monthRevenue)}</span></span>
+                    <span className="text-industrial-400 truncate" title={formatCurrency(overview.monthExpenses)}>Exp: <span className="text-red-400 font-mono">{formatCurrency(overview.monthExpenses)}</span></span>
                   </div>
                 </div>
               </div>
@@ -237,30 +237,30 @@ export function OwnerDashboard({ onViewUnpaidMembers, onViewPartialMembers }: Ow
 
       {/* Revenue & Stats Grid */}
       <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" variants={itemVariants}>
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors">
-          <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Month Revenue</h3>
-          <p className="text-2xl font-mono font-bold text-electric-500">{formatCurrency(overview.monthRevenue)}</p>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors overflow-hidden">
+          <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 truncate">Month Revenue</h3>
+          <p className="text-lg sm:text-2xl font-mono font-bold text-electric-500 truncate" title={formatCurrency(overview.monthRevenue)}>{formatCurrency(overview.monthRevenue)}</p>
         </div>
 
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors">
-          <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Today's Revenue</h3>
-          <p className="text-2xl font-mono font-bold text-industrial-50">{formatCurrency(overview.todayRevenue)}</p>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors overflow-hidden">
+          <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 truncate">Today's Revenue</h3>
+          <p className="text-lg sm:text-2xl font-mono font-bold text-industrial-50 truncate" title={formatCurrency(overview.todayRevenue)}>{formatCurrency(overview.todayRevenue)}</p>
         </div>
 
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">New Admissions</h3>
-            <span className="text-[10px] uppercase font-bold text-obsidian-400">This Month</span>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-electric-500/50 transition-colors overflow-hidden">
+          <div className="flex justify-between items-start mb-2 gap-2">
+            <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">New Admissions</h3>
+            <span className="text-[10px] uppercase font-bold text-obsidian-400 flex-shrink-0">This Month</span>
           </div>
-          <p className="text-2xl font-mono font-bold text-industrial-50">{overview.newAdmissionsMonth}</p>
+          <p className="text-2xl font-mono font-bold text-industrial-50 truncate" title={overview.newAdmissionsMonth.toString()}>{overview.newAdmissionsMonth}</p>
         </div>
 
-        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-steelgold-500/50 transition-colors">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest">Expiring Soon</h3>
-            <span className="text-[10px] uppercase font-bold text-obsidian-400">Next 7 Days</span>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded shadow-lg p-6 group hover:border-steelgold-500/50 transition-colors overflow-hidden">
+          <div className="flex justify-between items-start mb-2 gap-2">
+            <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest truncate">Expiring Soon</h3>
+            <span className="text-[10px] uppercase font-bold text-obsidian-400 flex-shrink-0">Next 7 Days</span>
           </div>
-          <p className="text-2xl font-mono font-bold text-steelgold-500">{overview.expiringMemberships}</p>
+          <p className="text-2xl font-mono font-bold text-steelgold-500 truncate" title={overview.expiringMemberships.toString()}>{overview.expiringMemberships}</p>
         </div>
       </motion.div>
 

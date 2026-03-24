@@ -83,8 +83,25 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
       const settings = await settingsRes.json();
       const gymName = settings.gym_name || 'Gym Ease';
 
-      // Format phone number (remove spaces, dashes, etc.)
-      const phoneNumber = member.phone.replace(/\D/g, '');
+      // Format phone number - strip everything non-digit, then ensure clean 10-digit Indian number
+      let phoneNumber = member.phone.replace(/\D/g, '');
+
+      // Remove leading country codes that might be stored with the number
+      // Common issues: +91, 91, 0, +997, +62, etc.
+      if (phoneNumber.length > 10) {
+        // If starts with 91 and remaining is 10 digits, strip 91
+        if (phoneNumber.startsWith('91') && phoneNumber.length === 12) {
+          phoneNumber = phoneNumber.substring(2);
+        }
+        // If starts with 0 and remaining is 10 digits, strip 0
+        else if (phoneNumber.startsWith('0') && phoneNumber.length === 11) {
+          phoneNumber = phoneNumber.substring(1);
+        }
+        // For any other prefix, just take the last 10 digits
+        else {
+          phoneNumber = phoneNumber.slice(-10);
+        }
+      }
 
       // Get last payment and subscription details
       const lastPayment = member.payments && member.payments.length > 0
@@ -124,8 +141,17 @@ ${gymName} Team`;
       // Encode message for URL
       const encodedMessage = encodeURIComponent(message);
 
-      const { shell } = window.require('electron');
-      await shell.openExternal(`whatsapp://send?phone=91${phoneNumber}&text=${encodedMessage}`);
+      // Use wa.me URL format (more reliable across platforms)
+      const waUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
+
+      // Try Electron shell first, fall back to window.open
+      try {
+        const { shell } = window.require('electron');
+        await shell.openExternal(waUrl);
+      } catch {
+        // Fallback for web or if Electron shell fails
+        window.open(waUrl, '_blank');
+      }
 
     } catch (error) {
       console.error('Error sending WhatsApp reminder:', error);

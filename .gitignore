@@ -16,3 +16,6 @@ out/
 # Electron
 *.exe
 *.asar
+
+
+*.txt

@@ -41,6 +41,9 @@ interface Payment {
   member_id: string;
   subscription_id: string;
   amount: number;
+  amount_due?: number;
+  balance?: number;
+  status?: string;
   payment_type: string;
   payment_mode: string;
   transaction_id: string;
@@ -57,6 +60,7 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
   const [loading, setLoading] = useState(true);
   const [confirmPaymentId, setConfirmPaymentId] = useState<string | null>(null);
   const [confirmPaymentActive, setConfirmPaymentActive] = useState(true);
+  const [clearingBalance, setClearingBalance] = useState(false);
 
   useEffect(() => {
     fetchMemberDetails();
@@ -125,6 +129,55 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
     }
   };
 
+  const handleClearBalance = async () => {
+    const activePayments = payments.filter((p) => p.is_active === true || p.is_active === 1 || p.is_active === undefined);
+    const partialPayments = activePayments.filter((p) => p.status === 'partial');
+    if (partialPayments.length === 0) {
+      toast.error('No outstanding balance found');
+      return;
+    }
+
+    const activePartial = partialPayments[0];
+    const outstandingAmount = activePartial.balance || 0;
+    if (outstandingAmount <= 0) {
+      toast.error('No outstanding balance to clear');
+      return;
+    }
+
+    try {
+      setClearingBalance(true);
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          memberId: member?.id,
+          amount: outstandingAmount,
+          amount_due: outstandingAmount,
+          paymentType: 'other',
+          paymentMode: 'cash',
+          paymentDate: Date.now(),
+          notes: 'Cleared outstanding balance',
+          settlePaymentId: activePartial.id,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Balance cleared and payment recorded');
+        fetchMemberDetails();
+      } else {
+        toast.error('Failed to clear balance');
+      }
+    } catch (error) {
+      console.error('Error clearing balance:', error);
+      toast.error('Error clearing balance');
+    } finally {
+      setClearingBalance(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -154,6 +207,12 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
       </div>
     );
   }
+
+  const activePayments = payments.filter((p) => p.is_active === true || p.is_active === 1 || p.is_active === undefined);
+  const partialPayments = activePayments.filter((p) => p.status === 'partial');
+  const totalPartialBalance = partialPayments.reduce((sum, p) => sum + (p.balance || 0), 0);
+  const totalPartialDue = partialPayments.reduce((sum, p) => sum + (p.amount_due || 0), 0);
+  const totalPaid = activePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const daysRemaining = subscription
     ? Math.ceil((subscription.end_date - Date.now()) / (1000 * 60 * 60 * 24))
@@ -208,6 +267,36 @@ export function MemberDetail({ memberId, onClose }: MemberDetailProps) {
                   </div>
                 </div>
               </div>
+
+              {totalPartialBalance > 0 && (
+                <div className="bg-obsidian-900 border border-obsidian-700/50 rounded-lg p-6 border-l-4 border-l-electric-500 shrink-0">
+                  <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4">Balance Summary</h3>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="bg-obsidian-800 border border-obsidian-700 rounded-lg p-4">
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Amount Paid</p>
+                      <p className="text-lg font-bold text-green-500 font-mono">{formatCurrency(totalPaid)}</p>
+                    </div>
+                    <div className="bg-obsidian-800 border border-obsidian-700 rounded-lg p-4">
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Total Owed</p>
+                      <p className="text-lg font-bold text-steelgold-500 font-mono">{formatCurrency(totalPartialDue)}</p>
+                    </div>
+                    <div className="bg-obsidian-800 border border-obsidian-700 rounded-lg p-4">
+                      <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Balance Due</p>
+                      <p className="text-lg font-bold text-red-500 font-mono">{formatCurrency(totalPartialBalance)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-[10px] text-industrial-400 font-mono uppercase tracking-widest">There is an outstanding balance. Clear it with a single payment record.</p>
+                    <button
+                      onClick={handleClearBalance}
+                      disabled={clearingBalance}
+                      className="px-4 py-2 bg-orange-500 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 shadow-lg shadow-orange-500/20"
+                    >
+                      {clearingBalance ? 'CLEARING...' : 'Clear Balance'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Fee Plan Card */}
               {subscription ? (

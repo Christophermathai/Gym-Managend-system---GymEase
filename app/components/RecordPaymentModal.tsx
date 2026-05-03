@@ -47,6 +47,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     notes: '',
     coupleMemberId: '',
     settlePaymentId: '',
+    useLastMembershipEndDate: true,
   });
   const [loading, setLoading] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -124,7 +125,15 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     setSelectedMember(member || null);
     setMemberSearchTerm(member ? `${member.name} (${member.phone})` : '');
     setShowMemberDropdown(false);
-    setFormData({ ...formData, memberId, feePlanId: '', amountDue: '', amountPaid: '', settlePaymentId: '' });
+    setFormData({
+      ...formData,
+      memberId,
+      feePlanId: '',
+      amountDue: '',
+      amountPaid: '',
+      settlePaymentId: '',
+      useLastMembershipEndDate: member ? !!member.subscription : true,
+    });
   };
 
   const filteredMembers = members.filter(member =>
@@ -161,6 +170,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
       notes: '',
       coupleMemberId: '',
       settlePaymentId: '',
+      useLastMembershipEndDate: true,
     });
     setSelectedMember(null);
     setMemberSearchTerm('');
@@ -209,6 +219,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           notes: formData.notes,
           coupleMemberId: formData.coupleMemberId,
           settlePaymentId: formData.settlePaymentId,
+          useLastMembershipEndDate: formData.useLastMembershipEndDate,
         }),
       });
 
@@ -251,7 +262,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
   return (
     <div className="fixed inset-0 bg-obsidian-900/80 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-obsidian-800 border border-obsidian-600 rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-obsidian-800 border border-obsidian-600 rounded-xl shadow-2xl p-6 w-full max-w-[56rem] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-obsidian-700">
           <h3 className="text-xl font-bold text-industrial-50 uppercase tracking-tight">Record Payment</h3>
@@ -263,7 +274,8 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="space-y-6">
           {/* Member Search Select */}
           <div className="relative">
             <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Member *</label>
@@ -393,6 +405,25 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             </select>
           </div>
 
+          {formData.paymentType === 'membership' && (
+            <div className="bg-obsidian-900 border border-obsidian-700 p-4 rounded-lg space-y-2">
+              <label className="flex items-center gap-3 text-sm font-bold text-industrial-50">
+                <input
+                  type="checkbox"
+                  checked={formData.useLastMembershipEndDate}
+                  onChange={(e) => setFormData({ ...formData, useLastMembershipEndDate: e.target.checked })}
+                  className="h-4 w-4 text-electric-500 rounded border-obsidian-600 bg-obsidian-900 focus:ring-electric-500"
+                />
+                <span>Start new membership from last membership end date</span>
+              </label>
+              <p className="text-[10px] text-industrial-400 font-mono uppercase tracking-widest">
+                {formData.useLastMembershipEndDate
+                  ? 'If this member had a previous subscription, the new plan will start from the last membership end date instead of today.'
+                  : 'New membership will start from the payment date as usual.'}
+              </p>
+            </div>
+          )}
+
           {/* Fee Breakdown */}
           {formData.feePlanId && selectedPlan && selectedMember && (
             <div className="bg-obsidian-900 border border-obsidian-700 p-4 rounded-lg">
@@ -464,9 +495,12 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
             </div>
           )}
 
+          </div>
+          <div className="space-y-6">
+
           {/* Total Due + Amount Paid + Balance — 3-column row */}
           {/* Total Due + Amount Paid + Balance — 3-column row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 items-end">
             <div>
               <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Total Due (₹) *</label>
               <input
@@ -492,8 +526,8 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Balance (₹)</label>
-              <div className={`px-4 py-2.5 rounded border font-bold text-sm font-mono flex items-center h-[42px] ${balance > 0
+              <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Balance (₹)</label>
+              <div className={`w-full px-4 py-2.5 rounded border font-bold text-sm font-mono flex items-center h-[42px] ${balance > 0
                 ? 'bg-red-500/10 border-red-500/30 text-red-500'
                 : 'bg-electric-500/10 border-electric-500/30 text-electric-500'
                 }`}>
@@ -560,6 +594,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
               placeholder="ADDITIONAL NOTES"
               rows={2}
             />
+          </div>
           </div>
         </div>
 

@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     const finalTransactionId = transactionId || transaction_id;
     const finalReceiptNo = receiptNo || receipt_no;
     const finalPaymentDate = paymentDate || payment_date;
+    const finalUseLastMembershipEndDate = body.useLastMembershipEndDate ?? body.use_last_membership_end_date;
+    const useLastMembershipEndDate = finalUseLastMembershipEndDate === undefined ? true : finalUseLastMembershipEndDate;
 
     // Determine if it's a couple payment first to calculate amounts
     let isCouplePayment = false;
@@ -124,11 +126,12 @@ export async function POST(request: NextRequest) {
       let subscriptionId = bodySubscriptionId;
 
       if (finalPaymentType === 'membership' && feePlan) {
-        // Check if this specific member already has an active subscription
+        // Check if this specific member already has a truly active subscription
+        const currentTime = Date.now();
         const existingSubscription = await getAsync(
           db,
-          'SELECT id, end_date FROM subscriptions WHERE member_id = ? AND status = ? ORDER BY end_date DESC LIMIT 1',
-          [currentMemberId, 'active']
+          'SELECT id, end_date FROM subscriptions WHERE member_id = ? AND status = ? AND end_date >= ? ORDER BY end_date DESC LIMIT 1',
+          [currentMemberId, 'active', currentTime]
         );
 
         if (existingSubscription) {
@@ -147,9 +150,20 @@ export async function POST(request: NextRequest) {
         } else {
           // Create new subscription
           subscriptionId = generateId('sub_');
-          const startDate = finalPaymentDate;
+          let startDate: any = finalPaymentDate;
+
+          if (useLastMembershipEndDate) {
+            const lastSubscription = await getAsync(
+              db,
+              'SELECT id, end_date FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC LIMIT 1',
+              [currentMemberId]
+            );
+            if (lastSubscription?.end_date) {
+              startDate = lastSubscription.end_date;
+            }
+          }
+
           const endDate = new Date(startDate);
-          // Safety: avoid double counting duration if doing couple logic, but it's okay because this loops per member.
           endDate.setMonth(endDate.getMonth() + feePlan.duration);
 
           await runAsync(

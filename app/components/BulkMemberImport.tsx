@@ -10,6 +10,7 @@ interface FeePlan {
     name: string;
     duration: number;
     monthly_fee: number;
+    is_couple_package?: boolean;
 }
 
 interface ImportResult {
@@ -26,6 +27,7 @@ export function BulkMemberImport() {
     const [result, setResult] = useState<ImportResult | null>(null);
     const [feePlans, setFeePlans] = useState<FeePlan[]>([]);
     const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+    const selectedPlan = feePlans.find(plan => plan.id === selectedPlanId);
 
     useEffect(() => {
         const fetchFeePlans = async () => {
@@ -68,8 +70,9 @@ export function BulkMemberImport() {
 
             headers.forEach((header, index) => {
                 if (header.includes('name')) member.name = values[index];
+                else if (header.includes('partner') && header.includes('phone')) member.partnerPhone = values[index];
                 else if (header.includes('phone')) member.phone = values[index];
-                else if (header.includes('email')) member.email = values[index];
+                else if (header.includes('email') && !header.includes('partner')) member.email = values[index];
                 else if (header.includes('gender')) {
                     const gender = values[index].toLowerCase();
                     member.gender = ['male', 'female', 'other'].includes(gender) ? gender : 'other';
@@ -205,7 +208,7 @@ export function BulkMemberImport() {
     };
 
     const downloadTemplate = () => {
-        const csv = 'Name,Phone Number,Email,Gender,Blood Group,Payment Date\nJohn Doe,1234567890,john@example.com,male,O+,15/03/2026\nJane Smith,9876543210,jane@example.com,female,A+,01/01/2026';
+        const csv = 'Name,Phone Number,Email,Gender,Blood Group,Payment Date,Partner Phone\nJohn Doe,1234567890,john@example.com,male,O+,15/03/2026,9876543210\nJane Smith,9876543210,jane@example.com,female,A+,01/01/2026,1234567890';
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -225,12 +228,13 @@ export function BulkMemberImport() {
                     <h3 className="font-bold text-electric-500 mb-2 uppercase tracking-widest text-[10px]">Instructions</h3>
                     <ul className="list-square list-inside text-xs text-industrial-300 space-y-2 font-mono leading-relaxed">
                         <li>Upload a CSV or Excel file with member data</li>
-                        <li>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group, Payment Date</li>
+                        <li>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group, Payment Date, Partner Phone</li>
                         <li>Name and Phone Number are required fields</li>
                         <li>Gender must be: male, female, or other (defaults to other if not specified)</li>
                         <li>Email, Blood Group, and Payment Date are optional</li>
                         <li>Payment Date format: DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD</li>
                         <li>If a Fee Plan is selected below and Payment Date is provided, a subscription and payment record will be created automatically</li>
+                        <li>For couple package plans, include a Partner Phone column to link members as a couple</li>
                     </ul>
                 </div>
 
@@ -247,13 +251,15 @@ export function BulkMemberImport() {
                         <option value="">-- No Fee Plan (import members only) --</option>
                         {feePlans.map(plan => (
                             <option key={plan.id} value={plan.id}>
-                                {plan.name} — {plan.duration} months — ₹{plan.monthly_fee * plan.duration}
+                                {plan.name} — {plan.duration} months — ₹{plan.monthly_fee} per month{plan.is_couple_package ? ' (couple)' : ''}
                             </option>
                         ))}
                     </select>
                     {selectedPlanId && (
                         <p className="mt-2 text-xs text-steelgold-500 font-mono">
-                            Members with a Payment Date will get a subscription + payment record auto-created.
+                            {selectedPlan?.is_couple_package
+                                ? 'Selected plan is a couple package. Use Partner Phone to link two members and split the couple subscription.'
+                                : 'Members with a Payment Date will get a subscription + payment record auto-created.'}
                         </p>
                     )}
                 </div>

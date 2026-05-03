@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, getAsync } from '@/db';
+import { getDatabase, runAsync, getAsync, allAsync } from '@/db';
 import { generateId, generateMemberId } from '@/app/lib/utils';
 import { getAuthUserId } from '@/app/lib/api-utils';
 
@@ -30,6 +30,23 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Selected fee plan not found or inactive' }, { status: 400 });
             }
         }
+
+        const partnerPhones = Array.from(new Set(members
+            .map((member: any) => member.partnerPhone?.trim())
+            .filter(Boolean)
+        ));
+
+        const existingPartnerMap = new Map<string, string>();
+        if (partnerPhones.length > 0) {
+            const placeholders = partnerPhones.map(() => '?').join(',');
+            const existingPartners = await allAsync(db, `SELECT phone, id FROM members WHERE phone IN (${placeholders})`, partnerPhones);
+            existingPartners.forEach((row: any) => {
+                if (row.phone) existingPartnerMap.set(row.phone, row.id);
+            });
+        }
+
+        const importedMemberMap = new Map<string, string>();
+        const insertedMembers: Array<any> = [];
 
         for (const member of members) {
             try {
@@ -72,45 +89,90 @@ export async function POST(request: NextRequest) {
                         userId
                     ]
                 );
-
-                // If fee plan selected and payment date provided, create subscription + payment
-                if (feePlan && member.paymentDate) {
-                    console.log(`Creating subscription for ${member.name}, paymentDate: ${member.paymentDate}, plan: ${feePlan.name}`);
-                    const subscriptionId = generateId('sub_');
-                    const paymentId = generateId('pay_');
-
-                    // Calculate end date from payment date + duration
-                    const startDate = new Date(member.paymentDate);
-                    const endDate = new Date(member.paymentDate);
-                    endDate.setMonth(endDate.getMonth() + feePlan.duration);
-
-                    const totalAmount = feePlan.monthly_fee * feePlan.duration;
-
-                    // Create subscription
-                    await runAsync(
-                        db,
-                        `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                        [subscriptionId, memberId, feePlanId, startDate.getTime(), endDate.getTime(), 'active', userId]
-                    );
-
-                    // Create payment record
-                    await runAsync(
-                        db,
-                        `INSERT INTO payments (id, member_id, subscription_id, amount, amount_due, balance, payment_type, payment_mode, payment_date, status, recorded_by, is_active, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                        [paymentId, memberId, subscriptionId, totalAmount, totalAmount, 0, 'membership', 'cash', member.paymentDate, 'completed', userId, 1]
-                    );
-
-                    subscriptionsCreated++;
-                } else if (feePlan && !member.paymentDate) {
-                    console.log(`No paymentDate for ${member.name}, skipping subscription`);
-                }
-
+                importedMemberMap.set(member.phone, memberId);
+                insertedMembers.push({ ...member, memberId });
                 successCount++;
             } catch (error: any) {
                 errors.push(`Failed: ${member.name} - ${error.message}`);
                 failedCount++;
+            }
+        }
+
+        const processedCoupleGroups = new Set<string>();
+
+        for (const member of insertedMembers) {
+            if (!feePlan || !member.paymentDate) {
+                if (feePlan && !member.paymentDate) {
+                    console.log(`No paymentDate for ${member.name}, skipping subscription`);
+                }
+                continue;
+            }
+
+            const startDate = new Date(member.paymentDate);
+            const endDate = new Date(member.paymentDate);
+            endDate.setMonth(endDate.getMonth() + feePlan.duration);
+            const subscriptionAmount = feePlan.monthly_fee;
+
+            if (feePlan.is_couple_package && member.partnerPhone?.trim()) {
+                const partnerPhone = member.partnerPhone.trim();
+                const partnerId = importedMemberMap.get(partnerPhone) || existingPartnerMap.get(partnerPhone);
+                const groupKey = [member.phone, partnerPhone].sort().join('|');
+
+                if (!partnerId || partnerId === member.memberId) {
+                    errors.push(`Couple partner not found or invalid for ${member.name} (${member.phone}) with partner phone ${partnerPhone}; imported member only.`);
+                } else if (!processedCoupleGroups.has(groupKey)) {
+                    processedCoupleGroups.add(groupKey);
+
+                    const subscriptionIdA = generateId('sub_');
+                    const subscriptionIdB = generateId('sub_');
+
+                    await runAsync(
+                        db,
+                        `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [subscriptionIdA, member.memberId, feePlanId, startDate.getTime(), endDate.getTime(), 'active', userId]
+                    );
+                    await runAsync(
+                        db,
+                        `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [subscriptionIdB, partnerId, feePlanId, startDate.getTime(), endDate.getTime(), 'active', userId]
+                    );
+
+                    const perMemberAmount = Math.round((subscriptionAmount / 2 + Number.EPSILON) * 100) / 100;
+
+                    await runAsync(
+                        db,
+                        `INSERT INTO payments (id, member_id, subscription_id, amount, amount_due, balance, payment_type, payment_mode, payment_date, status, recorded_by, is_active, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [generateId('pay_'), member.memberId, subscriptionIdA, perMemberAmount, perMemberAmount, 0, 'membership', 'cash', member.paymentDate, 'completed', userId, 1]
+                    );
+                    await runAsync(
+                        db,
+                        `INSERT INTO payments (id, member_id, subscription_id, amount, amount_due, balance, payment_type, payment_mode, payment_date, status, recorded_by, is_active, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                        [generateId('pay_'), partnerId, subscriptionIdB, perMemberAmount, perMemberAmount, 0, 'membership', 'cash', member.paymentDate, 'completed', userId, 1]
+                    );
+
+                    subscriptionsCreated += 2;
+                }
+            } else {
+                const subscriptionId = generateId('sub_');
+                await runAsync(
+                    db,
+                    `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                    [subscriptionId, member.memberId, feePlanId, startDate.getTime(), endDate.getTime(), 'active', userId]
+                );
+
+                await runAsync(
+                    db,
+                    `INSERT INTO payments (id, member_id, subscription_id, amount, amount_due, balance, payment_type, payment_mode, payment_date, status, recorded_by, is_active, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                    [generateId('pay_'), member.memberId, subscriptionId, subscriptionAmount, subscriptionAmount, 0, 'membership', 'cash', member.paymentDate, 'completed', userId, 1]
+                );
+
+                subscriptionsCreated++;
             }
         }
 

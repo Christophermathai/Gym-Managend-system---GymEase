@@ -156,10 +156,9 @@ function printReport(result: ReportResult, columns: typeof COLUMNS[ReportType]) 
     </div>
     ${summaryHtml}
     ${tableHtml}
-    <script>window.onload = function() { window.print(); }<\/script>
+    <script>window.onload = function() { window.print(); }</script>
 </body>
 </html>`;
-
     // Inject a hidden iframe — write report into it, trigger print, then remove it
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none;';

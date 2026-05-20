@@ -8,7 +8,7 @@ import { verifyToken, extractToken } from './auth';
  * Handles database fallback if role is missing from token.
  */
 export async function getAuthContext(request: NextRequest): Promise<{ userId: string; role: string } | null> {
-    let authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get('authorization');
     let token = extractToken(authHeader);
 
     // Fallback to HttpOnly cookie

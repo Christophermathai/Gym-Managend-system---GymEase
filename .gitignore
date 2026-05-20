@@ -13,9 +13,11 @@ build/
 out/
 .win-unpacked/
 
+
 # Electron
 *.exe
 *.asar
 
 
 *.txt
+migration_scripts/

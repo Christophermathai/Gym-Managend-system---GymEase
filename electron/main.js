@@ -146,6 +146,13 @@ ipcMain.on('restart-app', () => {
     autoUpdater.quitAndInstall();
 });
 
+ipcMain.on('check-for-updates', () => {
+    console.log('[Auto-Updater] Manual check requested from renderer');
+    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+        console.error('[Auto-Updater] Manual check failed:', err);
+    });
+});
+
 let mainWindow;
 let nextServerProcess;
 let isShuttingDown = false;
@@ -453,6 +460,7 @@ if (!gotTheLock) {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js'),
             },
             title: 'Gym Ease'
         });

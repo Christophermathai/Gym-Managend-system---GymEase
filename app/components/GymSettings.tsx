@@ -6,6 +6,14 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import LottieLoader from './LottieLoader';
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      checkForUpdates: () => void;
+    };
+  }
+}
+
 const DEFAULT_WHATSAPP_TEMPLATE = `Hello {member_name},
 
 This is a friendly reminder from *{gym_name}* regarding your membership fees.
@@ -102,6 +110,15 @@ export function GymSettings() {
             setSettings({ ...settings, [name]: checked });
         } else {
             setSettings({ ...settings, [name]: value });
+        }
+    };
+
+    const handleCheckUpdate = () => {
+        if (window.electronAPI) {
+            window.electronAPI.checkForUpdates();
+            toast.info('Checking for updates...');
+        } else {
+            toast.error('Updates can only be checked in the desktop app.');
         }
     };
 
@@ -214,6 +231,18 @@ export function GymSettings() {
                                 className="w-full bg-obsidian-800 border text-white border-obsidian-600 rounded p-3 text-sm focus:outline-none focus:border-electric-500 transition-colors"
                                 placeholder="123 Fitness Street..."
                             />
+                        </div>
+
+                        <div className="pt-4 border-t border-obsidian-700/50 mt-6">
+                            <label className="block text-xs font-bold text-industrial-400 uppercase tracking-widest mb-2">Application Updates</label>
+                            <button
+                                type="button"
+                                onClick={handleCheckUpdate}
+                                className="w-full px-4 py-3 bg-obsidian-800 border border-obsidian-600 text-electric-400 rounded text-xs font-bold uppercase tracking-widest hover:border-electric-500 hover:text-electric-300 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                Check for Updates
+                            </button>
                         </div>
                     </div>
 

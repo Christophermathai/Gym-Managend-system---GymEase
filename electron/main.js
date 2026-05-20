@@ -77,7 +77,7 @@ autoUpdater.on('update-available', (info) => {
                     </body>
                     </html>
                     `;
-                    progressWindow.loadURL(\`data:text/html;charset=utf-8,\${encodeURIComponent(html)}\`);
+                    progressWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
                 }
                 
                 autoUpdater.downloadUpdate();
@@ -100,7 +100,7 @@ autoUpdater.on('error', (err) => {
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
-    console.log(\`[Auto-Updater] Download speed: \${progressObj.bytesPerSecond} - Downloaded \${progressObj.percent}%\`);
+    console.log(`[Auto-Updater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
     if (mainWindow) {
         mainWindow.setProgressBar(progressObj.percent / 100);
     }

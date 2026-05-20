@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       [now]
     );
 
-    const pendingPaymentsCount = pendingAndPartialPayments.length;
+    let pendingPaymentsCount = pendingAndPartialPayments.length;
 
     // New admissions this month
     const newAdmissions = await allAsync(

@@ -16,8 +16,7 @@ export async function initializeDatabase(): Promise<any> {
     }
 
     console.log('Initializing Database at:', DB_PATH);
-    const importedSqlite = await import('better-sqlite3');
-    BetterSqlite3 = importedSqlite.default ?? importedSqlite;
+    BetterSqlite3 = require('better-sqlite3');
   } catch (e: any) {
     console.error('FAILED TO INITIALIZE DATABASE:', e?.message);
     throw new Error('Database initialization failed: ' + e?.message);
@@ -399,7 +398,7 @@ function createTables(db: any) {
     }
   } catch (error) {
     console.error('Migration error (payments status partial):', error);
-    try { db.pragma('foreign_keys = ON'); } catch (innerError) { console.warn('Unable to restore foreign keys after payments migration', innerError); }
+    try { db.pragma('foreign_keys = ON'); } catch (_) { }
   }
 
   // Migration: Support 'upi' in expenses table and handle 'check' vs 'cheque' legacy
@@ -438,14 +437,14 @@ function createTables(db: any) {
     }
   } catch (error) {
     console.error('Migration error (expenses recreation):', error);
-    try { db.pragma('foreign_keys = ON'); } catch (innerError) { console.warn('Unable to restore foreign keys after expenses migration', innerError); }
+    try { db.pragma('foreign_keys = ON'); } catch (_) { }
   }
 
   // Add is_active to payments if missing
   try {
     db.exec("ALTER TABLE payments ADD COLUMN is_active BOOLEAN DEFAULT TRUE");
     console.log('Added is_active to payments');
-  } catch (innerError) { console.warn('Payments is_active column already exists or could not be added', innerError); }
+  } catch (_) { /* column already exists */ }
 }
 
 export async function getDatabase(): Promise<any> {

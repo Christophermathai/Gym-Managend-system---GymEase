@@ -1,9 +1,11 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const { autoUpdater } = require('electron-updater');
+
+let progressWindow = null;
 
 // Configure autoUpdater
 autoUpdater.autoDownload = false;
@@ -13,6 +15,7 @@ autoUpdater.logger = console;
 autoUpdater.on('checking-for-update', () => {
     console.log('[Auto-Updater] Checking for update...');
 });
+
 autoUpdater.on('update-available', (info) => {
     console.log('[Auto-Updater] Update available:', info.version);
     if (mainWindow) {
@@ -25,35 +28,122 @@ autoUpdater.on('update-available', (info) => {
         }).then((result) => {
             if (result.response === 0) {
                 console.log('[Auto-Updater] User approved download. Starting download...');
+                
+                if (!progressWindow) {
+                    progressWindow = new BrowserWindow({
+                        width: 400,
+                        height: 220,
+                        modal: true,
+                        parent: mainWindow,
+                        resizable: false,
+                        closable: false,
+                        frame: false,
+                        backgroundColor: '#171717',
+                        webPreferences: {
+                            nodeIntegration: true,
+                            contextIsolation: false
+                        }
+                    });
+                    
+                    const html = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <style>
+                        body { font-family: 'Segoe UI', sans-serif; background: #171717; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                        .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; letter-spacing: 2px; }
+                        progress { width: 80%; height: 15px; border-radius: 4px; }
+                        progress::-webkit-progress-bar { background-color: #333; border-radius: 4px; }
+                        progress::-webkit-progress-value { background-color: #fff; border-radius: 4px; }
+                        #text { margin-bottom: 10px; font-size: 0.9rem; color: #ccc; text-align: center; padding: 0 20px; }
+                        button { padding: 8px 16px; background: #fff; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 15px; display: none; }
+                        button:hover { background: #ccc; }
+                        #timer { display: none; margin-top: 15px; font-size: 2rem; color: #ff4444; font-weight: bold; font-variant-numeric: tabular-nums; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="title">GYM EASE UPDATE</div>
+                      <div id="text">Starting download...</div>
+                      <progress id="bar" value="0" max="100"></progress>
+                      <div id="timer">05:00</div>
+                      <button id="btn" onclick="const { ipcRenderer } = require('electron'); ipcRenderer.send('restart-app')">Restart Now</button>
+                      <script>
+                        const { ipcRenderer } = require('electron');
+                        ipcRenderer.on('progress', (e, percent) => {
+                          document.getElementById('text').innerText = 'Downloading Update... ' + Math.floor(percent) + '%';
+                          document.getElementById('bar').value = percent;
+                        });
+                      </script>
+                    </body>
+                    </html>
+                    `;
+                    progressWindow.loadURL(\`data:text/html;charset=utf-8,\${encodeURIComponent(html)}\`);
+                }
+                
                 autoUpdater.downloadUpdate();
             }
         });
     }
 });
+
 autoUpdater.on('update-not-available', (info) => {
     console.log('[Auto-Updater] Update not available.');
 });
+
 autoUpdater.on('error', (err) => {
     console.error('[Auto-Updater] Error:', err);
-});
-autoUpdater.on('download-progress', (progressObj) => {
-    console.log(`[Auto-Updater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
-});
-autoUpdater.on('update-downloaded', (info) => {
-    console.log('[Auto-Updater] Update downloaded; prompting user to restart.');
-    if (mainWindow) {
-        dialog.showMessageBox(mainWindow, {
-            type: 'info',
-            title: 'Gym Ease Update Ready',
-            message: 'A new version of Gym Ease has been downloaded.',
-            detail: 'Restart the application now to apply the update and enjoy the latest features!',
-            buttons: ['Restart Now', 'Later']
-        }).then((result) => {
-            if (result.response === 0) {
-                autoUpdater.quitAndInstall();
-            }
-        });
+    if (mainWindow) mainWindow.setProgressBar(-1);
+    if (progressWindow) {
+        progressWindow.close();
+        progressWindow = null;
     }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    console.log(\`[Auto-Updater] Download speed: \${progressObj.bytesPerSecond} - Downloaded \${progressObj.percent}%\`);
+    if (mainWindow) {
+        mainWindow.setProgressBar(progressObj.percent / 100);
+    }
+    if (progressWindow) {
+        progressWindow.webContents.send('progress', progressObj.percent);
+    }
+});
+
+function promptRestart() {
+    if (!mainWindow) {
+        autoUpdater.quitAndInstall();
+        return;
+    }
+    dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Gym Ease Update Ready',
+        message: 'A new version of Gym Ease has been downloaded.',
+        detail: 'Restart the application now to apply the update and enjoy the latest features!',
+        buttons: ['Restart Now', 'Remind me in 5 minutes']
+    }).then((result) => {
+        if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+        } else {
+            console.log('[Auto-Updater] User deferred restart. Reminding in 5 minutes.');
+            setTimeout(promptRestart, 5 * 60 * 1000);
+        }
+    });
+}
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log('[Auto-Updater] Update downloaded; prompting user.');
+    if (mainWindow) mainWindow.setProgressBar(-1); // remove progress bar from taskbar
+    
+    if (progressWindow) {
+        progressWindow.close();
+        progressWindow = null;
+    }
+    
+    promptRestart();
+});
+
+ipcMain.on('restart-app', () => {
+    autoUpdater.quitAndInstall();
 });
 
 let mainWindow;

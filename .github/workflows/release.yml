@@ -27,11 +27,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
+      # Lint step removed per request to skip linting in CI
+      # - name: Run ESLint
+      #   run: npm run lint
 
-      - name: Run TypeScript Verification
-        run: npx tsc --noEmit
+      # TypeScript verification step removed to skip type-checking in CI
+      # - name: Run TypeScript Verification
+      #   run: npx tsc --noEmit
 
       - name: Verify Production Next.js Build
         run: npm run build

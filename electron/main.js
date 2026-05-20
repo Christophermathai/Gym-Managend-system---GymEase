@@ -3,6 +3,58 @@ const path = require('path');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const http = require('http');
+const { autoUpdater } = require('electron-updater');
+
+// Configure autoUpdater
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.logger = console;
+
+autoUpdater.on('checking-for-update', () => {
+    console.log('[Auto-Updater] Checking for update...');
+});
+autoUpdater.on('update-available', (info) => {
+    console.log('[Auto-Updater] Update available:', info.version);
+    if (mainWindow) {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Gym Ease Update Available',
+            message: `A new version of Gym Ease (${info.version}) is available.`,
+            detail: 'Would you like to download and install it now?',
+            buttons: ['Download Now', 'Later']
+        }).then((result) => {
+            if (result.response === 0) {
+                console.log('[Auto-Updater] User approved download. Starting download...');
+                autoUpdater.downloadUpdate();
+            }
+        });
+    }
+});
+autoUpdater.on('update-not-available', (info) => {
+    console.log('[Auto-Updater] Update not available.');
+});
+autoUpdater.on('error', (err) => {
+    console.error('[Auto-Updater] Error:', err);
+});
+autoUpdater.on('download-progress', (progressObj) => {
+    console.log(`[Auto-Updater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+});
+autoUpdater.on('update-downloaded', (info) => {
+    console.log('[Auto-Updater] Update downloaded; prompting user to restart.');
+    if (mainWindow) {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Gym Ease Update Ready',
+            message: 'A new version of Gym Ease has been downloaded.',
+            detail: 'Restart the application now to apply the update and enjoy the latest features!',
+            buttons: ['Restart Now', 'Later']
+        }).then((result) => {
+            if (result.response === 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
+    }
+});
 
 let mainWindow;
 let nextServerProcess;
@@ -295,6 +347,13 @@ if (!gotTheLock) {
     app.whenReady().then(async () => {
         ensureDatabase();
         startAutoBackup();
+
+        // Check for updates on startup if packaged
+        if (app.isPackaged) {
+            autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+                console.error('[Auto-Updater] Failed to check for updates:', err);
+            });
+        }
 
         mainWindow = new BrowserWindow({
             width: 1280,

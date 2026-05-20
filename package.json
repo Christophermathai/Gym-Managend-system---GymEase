@@ -19,6 +19,13 @@
   "build": {
     "appId": "com.gymease.app",
     "productName": "Gym Ease",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Christophermathai",
+        "repo": "Gym-Managend-system---GymEase"
+      }
+    ],
     "win": {
       "target": "nsis"
     },
@@ -62,6 +69,7 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.1.7",
     "framer-motion": "^12.26.2",
     "jsonwebtoken": "^9.0.2",
     "lottie-react": "^2.4.1",

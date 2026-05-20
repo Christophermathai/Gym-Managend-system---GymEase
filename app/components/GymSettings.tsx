@@ -10,6 +10,8 @@ declare global {
   interface Window {
     electronAPI?: {
       checkForUpdates: () => void;
+      onUpdateStatus: (callback: (data: any) => void) => void;
+      removeUpdateStatusListener: () => void;
     };
   }
 }
@@ -44,6 +46,7 @@ export function GymSettings() {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [settings, setSettings] = useState<GymSettingsData>({
         gym_name: '',
@@ -55,6 +58,26 @@ export function GymSettings() {
 
     useEffect(() => {
         if (token) fetchSettings();
+
+        // Listen for update status
+        if (window.electronAPI && window.electronAPI.onUpdateStatus) {
+            window.electronAPI.onUpdateStatus((data: any) => {
+                setIsCheckingUpdate(false);
+                if (data.status === 'no-update') {
+                    toast.success('You are on the latest version!');
+                } else if (data.status === 'error') {
+                    toast.error('Failed to check for updates: ' + data.message);
+                } else if (data.status === 'update-available') {
+                    // Native dialog will pop up, just stop loading
+                }
+            });
+        }
+
+        return () => {
+            if (window.electronAPI && window.electronAPI.removeUpdateStatusListener) {
+                window.electronAPI.removeUpdateStatusListener();
+            }
+        };
     }, [token]);
 
     const fetchSettings = async () => {
@@ -115,6 +138,7 @@ export function GymSettings() {
 
     const handleCheckUpdate = () => {
         if (window.electronAPI) {
+            setIsCheckingUpdate(true);
             window.electronAPI.checkForUpdates();
             toast.info('Checking for updates...');
         } else {
@@ -238,10 +262,23 @@ export function GymSettings() {
                             <button
                                 type="button"
                                 onClick={handleCheckUpdate}
-                                className="w-full px-4 py-3 bg-obsidian-800 border border-obsidian-600 text-electric-400 rounded text-xs font-bold uppercase tracking-widest hover:border-electric-500 hover:text-electric-300 transition-colors flex items-center justify-center gap-2"
+                                disabled={isCheckingUpdate}
+                                className="w-full px-4 py-3 bg-obsidian-800 border border-obsidian-600 text-electric-400 rounded text-xs font-bold uppercase tracking-widest hover:border-electric-500 hover:text-electric-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                Check for Updates
+                                {isCheckingUpdate ? (
+                                    <>
+                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                        </svg>
+                                        Checking...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        Check for Updates
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>

@@ -19,11 +19,12 @@ autoUpdater.on('checking-for-update', () => {
 autoUpdater.on('update-available', (info) => {
     console.log('[Auto-Updater] Update available:', info.version);
     if (mainWindow) {
+        mainWindow.webContents.send('update-status', { status: 'update-available' });
         dialog.showMessageBox(mainWindow, {
             type: 'info',
             title: 'Gym Ease Update Available',
             message: `A new version of Gym Ease (${info.version}) is available.`,
-            detail: 'Would you like to download and install it now?',
+            detail: 'Would you like to download it now?',
             buttons: ['Download Now', 'Later']
         }).then((result) => {
             if (result.response === 0) {
@@ -38,11 +39,17 @@ autoUpdater.on('update-available', (info) => {
                         resizable: false,
                         closable: false,
                         frame: false,
+                        alwaysOnTop: true,
                         backgroundColor: '#171717',
                         webPreferences: {
                             nodeIntegration: true,
                             contextIsolation: false
                         }
+                    });
+
+                    // Strictly lock down the app during download
+                    progressWindow.on('blur', () => {
+                        if (progressWindow) progressWindow.focus();
                     });
                     
                     const html = `
@@ -56,22 +63,21 @@ autoUpdater.on('update-available', (info) => {
                         progress::-webkit-progress-bar { background-color: #333; border-radius: 4px; }
                         progress::-webkit-progress-value { background-color: #fff; border-radius: 4px; }
                         #text { margin-bottom: 10px; font-size: 0.9rem; color: #ccc; text-align: center; padding: 0 20px; }
-                        button { padding: 8px 16px; background: #fff; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 15px; display: none; }
-                        button:hover { background: #ccc; }
-                        #timer { display: none; margin-top: 15px; font-size: 2rem; color: #ff4444; font-weight: bold; font-variant-numeric: tabular-nums; }
                       </style>
                     </head>
                     <body>
                       <div class="title">GYM EASE UPDATE</div>
                       <div id="text">Starting download...</div>
                       <progress id="bar" value="0" max="100"></progress>
-                      <div id="timer">05:00</div>
-                      <button id="btn" onclick="const { ipcRenderer } = require('electron'); ipcRenderer.send('restart-app')">Restart Now</button>
                       <script>
                         const { ipcRenderer } = require('electron');
                         ipcRenderer.on('progress', (e, percent) => {
                           document.getElementById('text').innerText = 'Downloading Update... ' + Math.floor(percent) + '%';
                           document.getElementById('bar').value = percent;
+                        });
+                        ipcRenderer.on('progress-done', () => {
+                          document.getElementById('text').innerText = 'Installing update... Restarting app...';
+                          document.getElementById('bar').value = 100;
                         });
                       </script>
                     </body>
@@ -88,13 +94,19 @@ autoUpdater.on('update-available', (info) => {
 
 autoUpdater.on('update-not-available', (info) => {
     console.log('[Auto-Updater] Update not available.');
+    if (mainWindow) {
+        mainWindow.webContents.send('update-status', { status: 'no-update' });
+    }
 });
 
 autoUpdater.on('error', (err) => {
     console.error('[Auto-Updater] Error:', err);
-    if (mainWindow) mainWindow.setProgressBar(-1);
+    if (mainWindow) {
+        mainWindow.setProgressBar(-1);
+        mainWindow.webContents.send('update-status', { status: 'error', message: err.message });
+    }
     if (progressWindow) {
-        progressWindow.close();
+        progressWindow.destroy(); // force destroy if error
         progressWindow = null;
     }
 });

@@ -59,7 +59,7 @@ jobs:
         run: npm install
 
       - name: Rebuild Native Dependencies (better-sqlite3)
-        run: npx electron-builder install-app-dep
+        run: npx electron-builder install-app-deps
 
       - name: Build Next.js Static/Standalone Files
         env:

@@ -119,24 +119,14 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
         ? new Date(activeSubscription.end_date).toLocaleDateString('en-IN')
         : 'N/A';
 
-      // Create enhanced reminder message
-      const message = `Hello ${member.name},
-
-This is a friendly reminder from *${gymName}* regarding your membership fees.
-
-*Payment Details:*
-- Last Payment: ${lastPaymentDate}
-- Membership Expires: ${subscriptionEndDate}
-- Status: Payment Pending
-
-Your payment is currently overdue. Please make the payment at your earliest convenience to continue enjoying our services without interruption.
-
-Please visit the gym or contact us to complete your payment.
-
-Thank you for your cooperation!
-
-Best regards,
-${gymName} Team`;
+      // Build message from saved template (or fall back to default)
+      const DEFAULT_MSG = `Hello {member_name},\n\nThis is a friendly reminder from *{gym_name}* regarding your membership fees.\n\n*Payment Details:*\n- Last Payment: {last_payment_date}\n- Membership Expires: {subscription_end_date}\n- Status: Payment Pending\n\nYour payment is currently overdue. Please make the payment at your earliest convenience to continue enjoying our services without interruption.\n\nPlease visit the gym or contact us to complete your payment.\n\nThank you for your cooperation!\n\nBest regards,\n{gym_name} Team`;
+      const template = settings.whatsapp_message_template || DEFAULT_MSG;
+      const message = template
+        .replace(/\{member_name\}/g, member.name)
+        .replace(/\{gym_name\}/g, gymName)
+        .replace(/\{last_payment_date\}/g, lastPaymentDate)
+        .replace(/\{subscription_end_date\}/g, subscriptionEndDate);
 
       // Encode message for URL
       const encodedMessage = encodeURIComponent(message);

@@ -264,6 +264,7 @@ function createTables(db: any) {
       gym_address TEXT,
       gym_phone TEXT,
       gym_email TEXT,
+      whatsapp_message_template TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -299,6 +300,11 @@ function createTables(db: any) {
     if (!hasEmail) {
       db.exec(`ALTER TABLE gym_settings ADD COLUMN gym_email TEXT`);
       console.log('Migration: gym_email column added to gym_settings');
+    }
+    const hasWhatsApp = settingsCols.some(col => col.name === 'whatsapp_message_template');
+    if (!hasWhatsApp) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN whatsapp_message_template TEXT`);
+      console.log('Migration: whatsapp_message_template column added to gym_settings');
     }
   } catch (error) {
     console.error('Migration error (gym_settings col):', error);

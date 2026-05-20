@@ -219,135 +219,186 @@ export function BulkMemberImport() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-2xl p-8">
-                <h2 className="text-2xl font-bold text-industrial-50 mb-6 font-sans uppercase tracking-tight">Bulk Member Import</h2>
+        <div className="bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-2xl p-6 lg:p-8">
 
-                {/* Instructions */}
-                <div className="bg-electric-500/10 border border-electric-500/30 rounded-lg p-4 mb-6">
-                    <h3 className="font-bold text-electric-500 mb-2 uppercase tracking-widest text-[10px]">Instructions</h3>
-                    <ul className="list-square list-inside text-xs text-industrial-300 space-y-2 font-mono leading-relaxed">
-                        <li>Upload a CSV or Excel file with member data</li>
-                        <li>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group, Payment Date, Partner Phone</li>
-                        <li>Name and Phone Number are required fields</li>
-                        <li>Gender must be: male, female, or other (defaults to other if not specified)</li>
-                        <li>Email, Blood Group, and Payment Date are optional</li>
-                        <li>Payment Date format: DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD</li>
-                        <li>If a Fee Plan is selected below and Payment Date is provided, a subscription and payment record will be created automatically</li>
-                        <li>For couple package plans, include a Partner Phone column to link members as a couple</li>
-                    </ul>
-                </div>
-
-                {/* Fee Plan Selector */}
-                <div className="mb-6">
-                    <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 border-l-2 border-steelgold-500 pl-2">
-                        Fee Plan (Optional — creates subscription & payment if Payment Date is provided)
-                    </label>
-                    <select
-                        value={selectedPlanId}
-                        onChange={e => setSelectedPlanId(e.target.value)}
-                        className="w-full p-3 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 text-sm font-mono focus:border-electric-500 focus:ring-1 focus:ring-electric-500 outline-none"
-                    >
-                        <option value="">-- No Fee Plan (import members only) --</option>
-                        {feePlans.map(plan => (
-                            <option key={plan.id} value={plan.id}>
-                                {plan.name} — {plan.duration} months — ₹{plan.monthly_fee} per month{plan.is_couple_package ? ' (couple)' : ''}
-                            </option>
-                        ))}
-                    </select>
-                    {selectedPlanId && (
-                        <p className="mt-2 text-xs text-steelgold-500 font-mono">
-                            {selectedPlan?.is_couple_package
-                                ? 'Selected plan is a couple package. Use Partner Phone to link two members and split the couple subscription.'
-                                : 'Members with a Payment Date will get a subscription + payment record auto-created.'}
-                        </p>
-                    )}
-                </div>
-
-                {/* Download Template */}
-                <div className="mb-6">
-                    <button
-                        onClick={downloadTemplate}
-                        className="px-4 py-2 bg-obsidian-900 text-industrial-50 border border-obsidian-700 rounded hover:border-electric-500 font-bold uppercase tracking-wider text-[10px] inline-flex items-center gap-2 transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            {/* Header row — title left, import button right */}
+            <div className="mb-8 border-b border-obsidian-700 pb-4 flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-industrial-50 uppercase tracking-wide flex items-center gap-3">
+                        <svg className="w-6 h-6 text-electric-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                         </svg>
-                        DOWNLOAD TEMPLATE
-                    </button>
+                        Bulk Member Import
+                    </h2>
+                    <p className="text-industrial-400 mt-2 text-sm">Import multiple members at once from a CSV or Excel file.</p>
                 </div>
-
-                {/* File Upload */}
-                <div className="mb-8">
-                    <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2 border-l-2 border-electric-500 pl-2">
-                        Select File
-                    </label>
-                    <input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={handleFileChange}
-                        className="block w-full text-sm text-industrial-400 file:mr-4 file:py-2.5 file:px-4 file:rounded file:border-0 file:text-[10px] file:font-bold file:uppercase file:tracking-wider file:bg-obsidian-900 file:text-electric-500 hover:file:bg-obsidian-700 cursor-pointer border border-dashed border-obsidian-600 rounded bg-obsidian-900/50 p-2"
-                    />
-                    {file && (
-                        <p className="mt-3 text-xs text-electric-500 font-mono">
-                            Selected: <span className="text-industrial-50">{file.name}</span>
-                        </p>
-                    )}
-                </div>
-
-                {/* Import Button */}
                 <button
                     onClick={handleImport}
                     disabled={!file || importing}
-                    className="w-full px-6 py-3 bg-electric-500 text-white rounded font-bold uppercase tracking-widest text-sm hover:bg-electric-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-electric-500/20"
+                    className="shrink-0 px-8 py-3 bg-electric-500 text-white rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-electric-600 transition-colors uppercase tracking-widest text-sm shadow-[0_0_15px_rgba(0,102,255,0.2)] hover:shadow-[0_0_20px_rgba(0,102,255,0.4)]"
                 >
-                    {importing ? 'IMPORTING...' : 'IMPORT MEMBERS'}
+                    {importing ? (
+                        <>
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                            </svg>
+                            Importing...
+                        </>
+                    ) : (
+                        <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            Import Members
+                        </>
+                    )}
                 </button>
+            </div>
 
-                {/* Results */}
-                {result && (
-                    <div className="mt-8 p-6 bg-obsidian-900 border border-obsidian-700 rounded-lg">
-                        <h3 className="font-bold text-industrial-50 uppercase tracking-wide text-sm mb-4 border-b border-obsidian-700 pb-2">Import Results</h3>
-                        <div className="space-y-3 text-xs font-mono">
-                            <p className="text-green-500 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                Successfully imported: {result.success}
+            {/* 2-column grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+                {/* Left column — upload controls */}
+                <div className="space-y-6 bg-obsidian-900 p-6 border border-obsidian-700/50 rounded-lg">
+                    <h3 className="text-[10px] font-bold text-electric-500 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-1 h-3 bg-electric-500 rounded-sm inline-block"></span>
+                        Upload Configuration
+                    </h3>
+
+                    {/* Fee Plan Selector */}
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest border-l-2 border-steelgold-500 pl-2">
+                            Fee Plan <span className="text-industrial-500 normal-case font-normal">(optional)</span>
+                        </label>
+                        <select
+                            value={selectedPlanId}
+                            onChange={e => setSelectedPlanId(e.target.value)}
+                            className="w-full p-3 bg-obsidian-800 border border-obsidian-600 rounded text-industrial-50 text-sm font-mono focus:border-electric-500 focus:ring-1 focus:ring-electric-500 outline-none"
+                        >
+                            <option value="">-- No Fee Plan (import members only) --</option>
+                            {feePlans.map(plan => (
+                                <option key={plan.id} value={plan.id}>
+                                    {plan.name} — {plan.duration} months — ₹{plan.monthly_fee}/mo{plan.is_couple_package ? ' (couple)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                        {selectedPlanId && (
+                            <p className="text-xs text-steelgold-500 font-mono">
+                                {selectedPlan?.is_couple_package
+                                    ? 'Couple package: include Partner Phone column to link members.'
+                                    : 'Members with a Payment Date will get a subscription + payment auto-created.'}
                             </p>
-                            {result.subscriptionsCreated > 0 && (
-                                <p className="text-steelgold-500 flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    Subscriptions & payments created: {result.subscriptionsCreated}
-                                </p>
-                            )}
-                            {result.failed > 0 && (
-                                <p className="text-red-500 flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    Failed: {result.failed}
-                                </p>
-                            )}
-                            {result.errors.length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-obsidian-800">
-                                    <p className="font-bold text-industrial-400 uppercase tracking-widest mb-2 text-[10px]">Errors Log</p>
-                                    <ul className="list-square list-inside text-red-400 space-y-1">
-                                        {result.errors.slice(0, 10).map((error, index) => (
-                                            <li key={index}>{error}</li>
-                                        ))}
-                                        {result.errors.length > 10 && (
-                                            <li className="text-obsidian-400 pt-2">... and {result.errors.length - 10} more errors</li>
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
-                )}
 
-                {/* Database Restore Section */}
-                <div className="mt-12 pt-8 border-t border-obsidian-700">
-                    <h2 className="text-xl font-bold text-industrial-50 mb-2 uppercase tracking-tight">Database Restore</h2>
-                    <p className="text-industrial-400 text-sm mb-6 max-w-2xl">Restore your database from automatic backups in case of data loss or system failure.</p>
-                    <DatabaseRestore />
+                    {/* File Upload */}
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest border-l-2 border-electric-500 pl-2">
+                            Select File
+                        </label>
+                        <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls"
+                            onChange={handleFileChange}
+                            className="block w-full text-sm text-industrial-400 file:mr-4 file:py-2.5 file:px-4 file:rounded file:border-0 file:text-[10px] file:font-bold file:uppercase file:tracking-wider file:bg-obsidian-700 file:text-electric-500 hover:file:bg-obsidian-600 cursor-pointer border border-dashed border-obsidian-600 rounded bg-obsidian-800/50 p-2"
+                        />
+                        {file && (
+                            <p className="text-xs text-electric-500 font-mono">
+                                Selected: <span className="text-industrial-50">{file.name}</span>
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Download Template */}
+                    <div>
+                        <button
+                            onClick={downloadTemplate}
+                            className="px-4 py-2 bg-obsidian-800 text-industrial-50 border border-obsidian-600 rounded hover:border-electric-500 hover:text-electric-500 font-bold uppercase tracking-wider text-[10px] inline-flex items-center gap-2 transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download CSV Template
+                        </button>
+                    </div>
                 </div>
+
+                {/* Right column — instructions + results */}
+                <div className="space-y-6">
+
+                    {/* Instructions */}
+                    <div className="bg-obsidian-900 p-6 border border-obsidian-700/50 rounded-lg">
+                        <h3 className="text-[10px] font-bold text-electric-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <span className="w-1 h-3 bg-electric-500 rounded-sm inline-block"></span>
+                            Instructions
+                        </h3>
+                        <ul className="space-y-2 text-xs text-industrial-300 font-mono leading-relaxed">
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>Upload a CSV or Excel file with member data</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>First row must contain headers: Name, Phone Number, Email, Gender, Blood Group, Payment Date, Partner Phone</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span><strong className="text-industrial-50">Name</strong> and <strong className="text-industrial-50">Phone Number</strong> are required fields</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>Gender must be: male, female, or other</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>Payment Date format: DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>If a Fee Plan is selected and Payment Date is provided, subscription &amp; payment are created automatically</li>
+                            <li className="flex gap-2"><span className="text-electric-500 shrink-0">›</span>For couple packages, include a Partner Phone column to link two members</li>
+                        </ul>
+                    </div>
+
+                    {/* Import Results */}
+                    {result && (
+                        <div className="bg-obsidian-900 p-6 border border-obsidian-700/50 rounded-lg">
+                            <h3 className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span className="w-1 h-3 bg-industrial-400 rounded-sm inline-block"></span>
+                                Import Results
+                            </h3>
+                            <div className="space-y-3 text-xs font-mono">
+                                <p className="text-green-500 flex items-center gap-2">
+                                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                    Successfully imported: <span className="font-bold">{result.success}</span>
+                                </p>
+                                {result.subscriptionsCreated > 0 && (
+                                    <p className="text-steelgold-500 flex items-center gap-2">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Subscriptions &amp; payments created: <span className="font-bold">{result.subscriptionsCreated}</span>
+                                    </p>
+                                )}
+                                {result.failed > 0 && (
+                                    <p className="text-red-500 flex items-center gap-2">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        Failed: <span className="font-bold">{result.failed}</span>
+                                    </p>
+                                )}
+                                {result.errors.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-obsidian-700">
+                                        <p className="font-bold text-industrial-400 uppercase tracking-widest mb-2 text-[10px]">Errors Log</p>
+                                        <ul className="space-y-1 text-red-400">
+                                            {result.errors.slice(0, 10).map((error, i) => (
+                                                <li key={i} className="flex gap-2"><span className="shrink-0">›</span>{error}</li>
+                                            ))}
+                                            {result.errors.length > 10 && (
+                                                <li className="text-industrial-500 pt-1">... and {result.errors.length - 10} more errors</li>
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Database Restore — full width below */}
+            <div className="mt-8 pt-8 border-t border-obsidian-700">
+                <div className="mb-6 flex items-center gap-3">
+                    <div>
+                        <h2 className="text-xl font-bold text-industrial-50 uppercase tracking-tight flex items-center gap-3">
+                            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                            </svg>
+                            Database Restore
+                        </h2>
+                        <p className="text-industrial-400 text-sm mt-1">Restore your database from automatic backups in case of data loss or system failure.</p>
+                    </div>
+                </div>
+                <DatabaseRestore />
             </div>
         </div>
     );

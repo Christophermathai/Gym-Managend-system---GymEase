@@ -27,10 +27,28 @@ export function ExpenseManagement() {
   const [editId, setEditId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>('');
   const [formData, setFormData] = useState<Partial<Expense>>({});
+  const [trainers, setTrainers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetchExpenses();
   }, [category]);
+
+  useEffect(() => {
+    const fetchTrainers = async () => {
+      try {
+        const res = await fetch('/api/staff', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setTrainers(
+            (Array.isArray(data) ? data : [])
+              .filter((s: any) => s.role === 'trainer' && s.is_active)
+              .map((s: any) => ({ id: s.id, name: s.name }))
+          );
+        }
+      } catch { /* ignore */ }
+    };
+    if (token) fetchTrainers();
+  }, [token]);
 
   const fetchExpenses = async () => {
     try {
@@ -261,7 +279,7 @@ export function ExpenseManagement() {
                 <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Category *</label>
                 <select
                   value={formData.category || ''}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value, description: '' })}
                   className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
                 >
                   <option value="">Select category</option>
@@ -275,13 +293,32 @@ export function ExpenseManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">Description *</label>
-                <input
-                  type="text"
-                  value={formData.description || ''}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
-                />
+                <label className="block text-xs font-bold text-industrial-400 uppercase mb-1 border-l-2 border-electric-500 pl-2">
+                  {formData.category === 'salaries' ? 'Trainer Name *' : 'Description *'}
+                </label>
+                {formData.category === 'salaries' ? (
+                  <select
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+                  >
+                    <option value="">Select trainer</option>
+                    {trainers.length > 0 ? (
+                      trainers.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))
+                    ) : (
+                      <option disabled value="">No active trainers found</option>
+                    )}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // If role is trainer, create user account
     if (role === 'trainer' && email && password) {
       // Check if email already exists
-      const existingUser = await getAsync(db, 'SELECT id FROM users WHERE email = ?', [email]);
+      const existingUser = await getAsync(db, 'SELECT id FROM users WHERE email = ? COLLATE NOCASE', [email]);
       if (existingUser) {
         return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
       }
@@ -90,10 +90,11 @@ export async function POST(request: NextRequest) {
       );
 
       // Create user profile
+      const profileId = generateId('profile_');
       await runAsync(
         db,
-        'INSERT INTO user_profiles (user_id, name, role, phone, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-        [userId, name, 'trainer', phone]
+        'INSERT INTO user_profiles (id, user_id, role, name, phone, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+        [profileId, userId, 'trainer', name, phone]
       );
     }
 

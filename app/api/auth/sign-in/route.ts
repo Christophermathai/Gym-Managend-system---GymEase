@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     if (flow === 'signUp') {
       // Check if user exists
-      const existing = await getAsync(db, 'SELECT id FROM users WHERE email = ?', [email]);
+      const existing = await getAsync(db, 'SELECT id FROM users WHERE email = ? COLLATE NOCASE', [email]);
       if (existing) {
         return NextResponse.json({ error: 'User already exists' }, { status: 400 });
       }
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return response;
     } else {
       // Sign in
-      const user = await getAsync(db, 'SELECT id, password FROM users WHERE email = ?', [email]);
+      const user = await getAsync(db, 'SELECT id, password FROM users WHERE email = ? COLLATE NOCASE', [email]);
       if (!user) {
         return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
       }

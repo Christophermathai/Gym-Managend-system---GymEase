@@ -28,6 +28,7 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState<Partial<Member>>({});
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [whatsappMethod, setWhatsappMethod] = useState<'manual' | 'gupshup'>('manual');
 
   // Filter & sort states
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>(initialFilter === 'unpaid' ? 'unpaid' : 'all');
@@ -51,7 +52,41 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
 
   useEffect(() => {
     fetchMembers();
+    fetchWhatsappMethod();
   }, [token]);
+
+  const fetchWhatsappMethod = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.whatsapp_method) setWhatsappMethod(data.whatsapp_method);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const toggleWhatsappMethod = async () => {
+    const newMethod = whatsappMethod === 'manual' ? 'gupshup' : 'manual';
+    setWhatsappMethod(newMethod);
+    try {
+      // Fetch current settings to preserve other fields
+      const res = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
+      const currentSettings = await res.json();
+      
+      // Update with new method
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...currentSettings, whatsapp_method: newMethod })
+      });
+      toast.success(`WhatsApp method switched to ${newMethod === 'manual' ? 'Manual Link' : 'Gupshup API'}`);
+    } catch (e) {
+      toast.error('Failed to save preference');
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -128,21 +163,40 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
         .replace(/\{last_payment_date\}/g, lastPaymentDate)
         .replace(/\{subscription_end_date\}/g, subscriptionEndDate);
 
-      // Encode message for URL
-      const encodedMessage = encodeURIComponent(message);
+      if (whatsappMethod === 'gupshup') {
+        const toastId = toast.loading('Sending message via Gupshup...');
+        try {
+          const sendRes = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ memberPhone: phoneNumber, messageText: message })
+          });
+          
+          if (sendRes.ok) {
+            toast.success('Message sent successfully!', { id: toastId });
+          } else {
+            const errData = await sendRes.json();
+            toast.error(errData.error || 'Failed to send message via Gupshup', { id: toastId });
+          }
+        } catch (e) {
+          toast.error('Error sending message', { id: toastId });
+        }
+      } else {
+        // Encode message for URL
+        const encodedMessage = encodeURIComponent(message);
 
-      // Use wa.me URL format (more reliable across platforms)
-      const waUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
+        // Use wa.me URL format (more reliable across platforms)
+        const waUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
 
-      // Try Electron shell first, fall back to window.open
-      try {
-        const { shell } = window.require('electron');
-        await shell.openExternal(waUrl);
-      } catch {
-        // Fallback for web or if Electron shell fails
-        window.open(waUrl, '_blank');
+        // Try Electron shell first, fall back to window.open
+        try {
+          const { shell } = window.require('electron');
+          await shell.openExternal(waUrl);
+        } catch {
+          // Fallback for web or if Electron shell fails
+          window.open(waUrl, '_blank');
+        }
       }
-
     } catch (error) {
       console.error('Error sending WhatsApp reminder:', error);
       toast.error('Failed to open WhatsApp');
@@ -287,15 +341,31 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
       >
         <div className="flex items-center justify-between mb-6 border-b border-obsidian-700 pb-4">
           <h2 className="text-2xl font-bold text-industrial-50 font-sans tracking-tight">Members Directory</h2>
-          <button
-            onClick={() => fetchMembers()}
-            className="px-4 py-2 bg-obsidian-700 text-industrial-50 border border-obsidian-600 rounded hover:border-electric-500 hover:text-electric-500 transition-colors flex items-center gap-2 text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-obsidian-900 border border-obsidian-600 rounded p-1">
+              <button
+                onClick={() => whatsappMethod !== 'manual' && toggleWhatsappMethod()}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${whatsappMethod === 'manual' ? 'bg-electric-500 text-white' : 'text-industrial-400 hover:text-industrial-300'}`}
+              >
+                Manual
+              </button>
+              <button
+                onClick={() => whatsappMethod !== 'gupshup' && toggleWhatsappMethod()}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${whatsappMethod === 'gupshup' ? 'bg-green-500 text-white' : 'text-industrial-400 hover:text-industrial-300'}`}
+              >
+                Gushup
+              </button>
+            </div>
+            <button
+              onClick={() => fetchMembers()}
+              className="px-4 py-2 bg-obsidian-700 text-industrial-50 border border-obsidian-600 rounded hover:border-electric-500 hover:text-electric-500 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Filters */}

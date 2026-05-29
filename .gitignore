@@ -20,3 +20,5 @@ out/
 
 *.txt
 migration_scripts/
+ANDROID_DESIGN_GUIDE.md
+ANDROID_README.md

@@ -40,9 +40,6 @@ interface GymSettingsData {
     gym_phone: string;
     gym_address: string;
     whatsapp_message_template: string;
-    gupshup_api_key?: string;
-    gupshup_app_name?: string;
-    whatsapp_method?: string;
 }
 
 export function GymSettings() {
@@ -57,9 +54,6 @@ export function GymSettings() {
         gym_phone: '',
         gym_address: '',
         whatsapp_message_template: DEFAULT_WHATSAPP_TEMPLATE,
-        gupshup_api_key: '',
-        gupshup_app_name: '',
-        whatsapp_method: 'manual',
     });
 
     useEffect(() => {
@@ -291,43 +285,6 @@ export function GymSettings() {
                         </div>
                     </div>
 
-                    {/* Left column - Gupshup Settings */}
-                    <div className="space-y-6 bg-obsidian-900 p-6 border border-obsidian-700/50 rounded-lg h-full mt-8">
-                        <h3 className="text-[10px] font-bold text-electric-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="w-1 h-3 bg-electric-500 rounded-sm inline-block"></span>
-                            Gupshup Connection
-                        </h3>
-                        
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-industrial-400 uppercase tracking-widest">Gupshup API Key</label>
-                                <input
-                                    type="password"
-                                    name="gupshup_api_key"
-                                    value={settings.gupshup_api_key || ''}
-                                    onChange={handleChange}
-                                    className="w-full bg-obsidian-800 border text-white border-obsidian-600 rounded p-3 text-sm focus:outline-none focus:border-electric-500 transition-colors font-mono"
-                                    placeholder="Enter your Gupshup API Key"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-industrial-400 uppercase tracking-widest">Gupshup App Name / Source Number</label>
-                                <input
-                                    type="text"
-                                    name="gupshup_app_name"
-                                    value={settings.gupshup_app_name || ''}
-                                    onChange={handleChange}
-                                    className="w-full bg-obsidian-800 border text-white border-obsidian-600 rounded p-3 text-sm focus:outline-none focus:border-electric-500 transition-colors font-mono"
-                                    placeholder="e.g. GymEaseApp"
-                                />
-                            </div>
-                            <p className="text-[10px] text-industrial-500 mt-2 leading-relaxed">
-                                Connect to Gupshup to send WhatsApp messages directly from the app. 
-                                After saving, you can switch between Manual (Direct Link) and Gupshup mode from the Members List.
-                            </p>
-                        </div>
-                    </div>
                     </div> {/* End Left Column Wrapper */}
 
                 <div className="h-full">

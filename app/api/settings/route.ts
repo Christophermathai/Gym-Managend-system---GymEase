@@ -31,14 +31,14 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { gym_name, gym_address, gym_phone, gym_email, whatsapp_message_template, gupshup_api_key, gupshup_app_name, whatsapp_method } = body;
+        const { gym_name, gym_address, gym_phone, gym_email, whatsapp_message_template } = body;
 
         const db = await getDatabase();
 
         await runAsync(
             db,
-            'UPDATE gym_settings SET gym_name = ?, gym_address = ?, gym_phone = ?, gym_email = ?, whatsapp_message_template = ?, gupshup_api_key = ?, gupshup_app_name = ?, whatsapp_method = ? WHERE id = 1',
-            [gym_name, gym_address || null, gym_phone || null, gym_email || null, whatsapp_message_template || null, gupshup_api_key || null, gupshup_app_name || null, whatsapp_method || 'manual']
+            'UPDATE gym_settings SET gym_name = ?, gym_address = ?, gym_phone = ?, gym_email = ?, whatsapp_message_template = ? WHERE id = 1',
+            [gym_name, gym_address || null, gym_phone || null, gym_email || null, whatsapp_message_template || null]
         );
 
         return NextResponse.json({ message: 'Settings updated successfully' });

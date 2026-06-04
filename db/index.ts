@@ -265,9 +265,6 @@ function createTables(db: any) {
       gym_phone TEXT,
       gym_email TEXT,
       whatsapp_message_template TEXT,
-      gupshup_api_key TEXT,
-      gupshup_app_name TEXT,
-      whatsapp_method TEXT DEFAULT 'manual',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -308,21 +305,6 @@ function createTables(db: any) {
     if (!hasWhatsApp) {
       db.exec(`ALTER TABLE gym_settings ADD COLUMN whatsapp_message_template TEXT`);
       console.log('Migration: whatsapp_message_template column added to gym_settings');
-    }
-    const hasGupshupApiKey = settingsCols.some(col => col.name === 'gupshup_api_key');
-    if (!hasGupshupApiKey) {
-      db.exec(`ALTER TABLE gym_settings ADD COLUMN gupshup_api_key TEXT`);
-      console.log('Migration: gupshup_api_key column added to gym_settings');
-    }
-    const hasGupshupAppName = settingsCols.some(col => col.name === 'gupshup_app_name');
-    if (!hasGupshupAppName) {
-      db.exec(`ALTER TABLE gym_settings ADD COLUMN gupshup_app_name TEXT`);
-      console.log('Migration: gupshup_app_name column added to gym_settings');
-    }
-    const hasWhatsappMethod = settingsCols.some(col => col.name === 'whatsapp_method');
-    if (!hasWhatsappMethod) {
-      db.exec(`ALTER TABLE gym_settings ADD COLUMN whatsapp_method TEXT DEFAULT 'manual'`);
-      console.log('Migration: whatsapp_method column added to gym_settings');
     }
   } catch (error) {
     console.error('Migration error (gym_settings col):', error);

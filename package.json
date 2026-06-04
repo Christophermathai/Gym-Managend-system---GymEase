@@ -27,7 +27,8 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "publisherName": "Parallax Machine Inc"
     },
     "nsis": {
       "oneClick": false,

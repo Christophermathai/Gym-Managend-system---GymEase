@@ -306,6 +306,21 @@ function createTables(db: any) {
       db.exec(`ALTER TABLE gym_settings ADD COLUMN whatsapp_message_template TEXT`);
       console.log('Migration: whatsapp_message_template column added to gym_settings');
     }
+    const hasWhatsAppMode = settingsCols.some(col => col.name === 'whatsapp_mode');
+    if (!hasWhatsAppMode) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN whatsapp_mode TEXT DEFAULT 'manual'`);
+      console.log('Migration: whatsapp_mode column added to gym_settings');
+    }
+    const hasApiKey = settingsCols.some(col => col.name === 'api_key');
+    if (!hasApiKey) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN api_key TEXT`);
+      console.log('Migration: api_key column added to gym_settings');
+    }
+    const hasAvailableCredits = settingsCols.some(col => col.name === 'available_credits');
+    if (!hasAvailableCredits) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN available_credits INTEGER DEFAULT 0`);
+      console.log('Migration: available_credits column added to gym_settings');
+    }
   } catch (error) {
     console.error('Migration error (gym_settings col):', error);
   }

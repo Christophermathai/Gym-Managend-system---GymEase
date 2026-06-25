@@ -31,14 +31,14 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { gym_name, gym_address, gym_phone, gym_email, whatsapp_message_template } = body;
+        const { gym_name, gym_address, gym_phone, gym_email, whatsapp_message_template, whatsapp_mode, api_key, available_credits } = body;
 
         const db = await getDatabase();
 
         await runAsync(
             db,
-            'UPDATE gym_settings SET gym_name = ?, gym_address = ?, gym_phone = ?, gym_email = ?, whatsapp_message_template = ? WHERE id = 1',
-            [gym_name, gym_address || null, gym_phone || null, gym_email || null, whatsapp_message_template || null]
+            'UPDATE gym_settings SET gym_name = ?, gym_address = ?, gym_phone = ?, gym_email = ?, whatsapp_message_template = ?, whatsapp_mode = ?, api_key = ?, available_credits = ? WHERE id = 1',
+            [gym_name, gym_address || null, gym_phone || null, gym_email || null, whatsapp_message_template || null, whatsapp_mode || 'manual', api_key || null, available_credits ?? 0]
         );
 
         return NextResponse.json({ message: 'Settings updated successfully' });

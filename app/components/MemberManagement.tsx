@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { MemberDetail } from './MemberDetail';
 import { toast } from 'sonner';
 import LottieLoader from './LottieLoader';
+import { LowBalanceModal } from './LowBalanceModal';
 
 interface Member {
   id: string;
@@ -28,6 +29,8 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState<Partial<Member>>({});
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [showLowBalance, setShowLowBalance] = useState(false);
+  const [gymSettings, setGymSettings] = useState<{ api_key?: string; whatsapp_mode?: string; available_credits?: number; gym_id?: string } | null>(null);
 
   // Filter & sort states
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>(initialFilter === 'unpaid' ? 'unpaid' : 'all');
@@ -51,6 +54,13 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
 
   useEffect(() => {
     fetchMembers();
+    // Also fetch gym settings to know the WhatsApp mode and API key
+    if (token) {
+      fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => setGymSettings(d))
+        .catch(() => {});
+    }
   }, [token]);
 
   const fetchMembers = async () => {
@@ -74,53 +84,29 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
     }
   };
 
+  const BACKEND_URL = process.env.NEXT_PUBLIC_MESSAGE_BACKEND_URL || 'https://gymease-backend.vercel.app';
+
   const sendWhatsAppReminder = async (member: Member) => {
     try {
-      // Fetch gym settings
+      // Fetch latest gym settings
       const settingsRes = await fetch('/api/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const settings = await settingsRes.json();
       const gymName = settings.gym_name || 'Gym Ease';
+      const isAutomated = settings.whatsapp_mode === 'automated';
+      const apiKey = settings.api_key;
+      const availableCredits = settings.available_credits ?? 0;
 
-      // Format phone number - strip everything non-digit, then ensure clean 10-digit Indian number
-      let phoneNumber = member.phone.replace(/\D/g, '');
+      // Build message from template
+      const DEFAULT_MSG = `Hello {member_name},\n\nThis is a friendly reminder from *{gym_name}* regarding your membership fees.\n\n*Payment Details:*\n- Last Payment: {last_payment_date}\n- Membership Expires: {subscription_end_date}\n- Status: Payment Pending\n\nYour payment is currently overdue. Please make the payment at your earliest convenience.\n\nThank you for your cooperation!\n\nBest regards,\n{gym_name} Team`;
 
-      // Remove leading country codes that might be stored with the number
-      // Common issues: +91, 91, 0, +997, +62, etc.
-      if (phoneNumber.length > 10) {
-        // If starts with 91 and remaining is 10 digits, strip 91
-        if (phoneNumber.startsWith('91') && phoneNumber.length === 12) {
-          phoneNumber = phoneNumber.substring(2);
-        }
-        // If starts with 0 and remaining is 10 digits, strip 0
-        else if (phoneNumber.startsWith('0') && phoneNumber.length === 11) {
-          phoneNumber = phoneNumber.substring(1);
-        }
-        // For any other prefix, just take the last 10 digits
-        else {
-          phoneNumber = phoneNumber.slice(-10);
-        }
-      }
-
-      // Get last payment and subscription details
       const lastPayment = member.payments && member.payments.length > 0
-        ? member.payments[member.payments.length - 1]
-        : null;
-      const activeSubscription = member.subscriptions && member.subscriptions.length > 0
-        ? member.subscriptions.find((sub: any) => sub.status === 'active')
-        : null;
+        ? member.payments[member.payments.length - 1] : null;
+      const activeSubscription = member.subscriptions?.find((sub: any) => sub.status === 'active') || null;
+      const lastPaymentDate = lastPayment ? new Date(lastPayment.payment_date).toLocaleDateString('en-IN') : 'N/A';
+      const subscriptionEndDate = activeSubscription ? new Date(activeSubscription.end_date).toLocaleDateString('en-IN') : 'N/A';
 
-      // Format dates
-      const lastPaymentDate = lastPayment
-        ? new Date(lastPayment.payment_date).toLocaleDateString('en-IN')
-        : 'N/A';
-      const subscriptionEndDate = activeSubscription
-        ? new Date(activeSubscription.end_date).toLocaleDateString('en-IN')
-        : 'N/A';
-
-      // Build message from saved template (or fall back to default)
-      const DEFAULT_MSG = `Hello {member_name},\n\nThis is a friendly reminder from *{gym_name}* regarding your membership fees.\n\n*Payment Details:*\n- Last Payment: {last_payment_date}\n- Membership Expires: {subscription_end_date}\n- Status: Payment Pending\n\nYour payment is currently overdue. Please make the payment at your earliest convenience to continue enjoying our services without interruption.\n\nPlease visit the gym or contact us to complete your payment.\n\nThank you for your cooperation!\n\nBest regards,\n{gym_name} Team`;
       const template = settings.whatsapp_message_template || DEFAULT_MSG;
       const message = template
         .replace(/\{member_name\}/g, member.name)
@@ -128,23 +114,70 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
         .replace(/\{last_payment_date\}/g, lastPaymentDate)
         .replace(/\{subscription_end_date\}/g, subscriptionEndDate);
 
-      // Encode message for URL
+      // AUTOMATED MODE
+      if (isAutomated && apiKey) {
+        // If local cache says 0, check if credits are actually available before blocking
+        if (availableCredits <= 0) {
+          setShowLowBalance(true);
+          return;
+        }
+
+        const res = await fetch(`${BACKEND_URL}/api/messages/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ 
+            phone: member.phone, 
+            parameters: [member.name, gymName, lastPaymentDate, subscriptionEndDate] 
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // Update local cache with returned balance
+          await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ ...settings, available_credits: data.remainingCredits }),
+          });
+          setGymSettings(prev => prev ? { ...prev, available_credits: data.remainingCredits } : prev);
+          toast.success(`WhatsApp sent to ${member.name}! (${data.remainingCredits} credits left)`);
+        } else if (data.error === 'INSUFFICIENT_CREDITS') {
+          // Backend confirmed 0 credits — update cache and show QR
+          await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ ...settings, available_credits: 0 }),
+          });
+          setGymSettings(prev => prev ? { ...prev, available_credits: 0 } : prev);
+          setShowLowBalance(true);
+        } else {
+          toast.error('Failed to send message: ' + (data.message || 'Unknown error'));
+        }
+        return;
+      }
+
+      // MANUAL MODE — open wa.me URL
+      let phoneNumber = member.phone.replace(/\D/g, '');
+      if (phoneNumber.length > 10) {
+        if (phoneNumber.startsWith('91') && phoneNumber.length === 12) phoneNumber = phoneNumber.substring(2);
+        else if (phoneNumber.startsWith('0') && phoneNumber.length === 11) phoneNumber = phoneNumber.substring(1);
+        else phoneNumber = phoneNumber.slice(-10);
+      }
       const encodedMessage = encodeURIComponent(message);
-
-      // Use wa.me URL format (more reliable across platforms)
       const waUrl = `https://wa.me/91${phoneNumber}?text=${encodedMessage}`;
-
-      // Try Electron shell first, fall back to window.open
       try {
         const { shell } = window.require('electron');
         await shell.openExternal(waUrl);
       } catch {
-        // Fallback for web or if Electron shell fails
         window.open(waUrl, '_blank');
       }
     } catch (error) {
       console.error('Error sending WhatsApp reminder:', error);
-      toast.error('Failed to open WhatsApp');
+      toast.error('Failed to send WhatsApp message');
     }
   };
 
@@ -278,6 +311,17 @@ export function MemberManagement({ initialFilter }: { initialFilter?: 'unpaid' |
 
   return (
     <>
+      {showLowBalance && gymSettings?.api_key && (
+        <LowBalanceModal
+          gymId={gymSettings?.gym_id || ''}
+          apiKey={gymSettings.api_key}
+          onClose={() => setShowLowBalance(false)}
+          onBalanceSynced={(credits) => {
+            setGymSettings(prev => prev ? { ...prev, available_credits: credits } : prev);
+            setShowLowBalance(false);
+          }}
+        />
+      )}
       <motion.div
         className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg"
         initial={{ opacity: 0, y: 20 }}

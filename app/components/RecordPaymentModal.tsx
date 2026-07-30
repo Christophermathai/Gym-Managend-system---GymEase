@@ -65,12 +65,31 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+  const [showTransactionIdSetting, setShowTransactionIdSetting] = useState<boolean>(true);
+
   useEffect(() => {
     if (isOpen) {
       fetchMembers();
       fetchFeePlans();
+      fetchSettings();
     }
   }, [isOpen]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.show_transaction_id !== undefined) {
+          setShowTransactionIdSetting(data.show_transaction_id !== 0);
+        }
+      }
+    } catch (error) {
+      // fallback default to true
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -377,371 +396,374 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-6">
-          {/* Member Search Select */}
-          <div className="relative">
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Member *</label>
-            <input
-              type="text"
-              value={memberSearchTerm}
-              onChange={(e) => {
-                setMemberSearchTerm(e.target.value);
-                setShowMemberDropdown(true);
-                if (e.target.value === '') {
-                  handleMemberChange('');
-                }
-              }}
-              onFocus={() => setShowMemberDropdown(true)}
-              onBlur={() => setTimeout(() => setShowMemberDropdown(false), 200)}
-              placeholder={loadingMembers ? "LOADING MEMBERS..." : "SEARCH BY NAME OR PHONE..."}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
-              disabled={loadingMembers}
-            />
-            {showMemberDropdown && memberSearchTerm && (
-              <div className="absolute z-10 w-full mt-1 bg-obsidian-900 border border-obsidian-600 rounded-lg shadow-xl max-h-60 overflow-y-auto font-mono">
-                {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      onClick={() => handleMemberChange(member.id)}
-                      className="px-4 py-3 hover:bg-obsidian-800 cursor-pointer border-b border-obsidian-800 last:border-0 transition-colors"
+          <div className="space-y-5">
+            {/* Member Search Select */}
+            <div className="relative">
+              <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Member *</label>
+              <input
+                type="text"
+                value={memberSearchTerm}
+                onChange={(e) => {
+                  setMemberSearchTerm(e.target.value);
+                  setShowMemberDropdown(true);
+                  if (e.target.value === '') {
+                    handleMemberChange('');
+                  }
+                }}
+                onFocus={() => setShowMemberDropdown(true)}
+                onBlur={() => setTimeout(() => setShowMemberDropdown(false), 200)}
+                placeholder={loadingMembers ? "LOADING MEMBERS..." : "SEARCH BY NAME OR PHONE..."}
+                className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
+                disabled={loadingMembers}
+              />
+              {showMemberDropdown && memberSearchTerm && (
+                <div className="absolute z-10 w-full mt-1 bg-obsidian-900 border border-obsidian-600 rounded-lg shadow-xl max-h-60 overflow-y-auto font-mono">
+                  {filteredMembers.length > 0 ? (
+                    filteredMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        onClick={() => handleMemberChange(member.id)}
+                        className="px-4 py-3 hover:bg-obsidian-800 cursor-pointer border-b border-obsidian-800 last:border-0 transition-colors"
+                      >
+                        <div className="font-bold text-industrial-50">{member.name}</div>
+                        <div className="text-xs text-obsidian-400 mt-1">{member.phone} {member.subscription ? '' : <span className="text-electric-500 ml-2 font-sans uppercase tracking-widest text-[10px]">• New Member</span>}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-xs text-obsidian-400 text-center uppercase tracking-widest">[ NO MEMBERS FOUND ]</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Member Status Indicator */}
+            {selectedMember && (() => {
+              const sub = selectedMember.subscription;
+              const isExpired = sub && (sub.status === 'expired' || sub.end_date < Date.now());
+
+              return (
+                <div className={`p-3.5 rounded-lg border text-xs font-mono transition-all ${!sub ? 'bg-yellow-500/10 border-yellow-500/30' :
+                  isExpired ? 'bg-red-500/10 border-red-500/30' :
+                    'bg-electric-500/10 border-electric-500/30'
+                  }`}>
+                  <p className={`font-bold uppercase tracking-wider text-[11px] ${!sub ? 'text-yellow-400' :
+                    isExpired ? 'text-red-400' :
+                      'text-electric-400'
+                    }`}>
+                    {!sub ? '★ New Member — First Time Payment' :
+                      isExpired ? '⚠ Expired Member — Renewal Required' :
+                        '✓ Existing Member — Renewal (No Admission Fee)'}
+                  </p>
+                  {sub && (
+                    <p className="text-industrial-300 mt-1.5">
+                      {isExpired ? 'Last Plan: ' : 'Current Plan: '}
+                      <span className="text-industrial-50 font-bold">{sub.plan_name}</span>
+                      {isExpired && sub.end_date && (
+                        <span className="ml-2 text-red-400/80">
+                          (Expired {new Date(sub.end_date).toLocaleDateString()})
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Settle Balance Banner */}
+            {(() => {
+              const partialPayments = selectedMember?.payments?.filter((p: any) => p.status === 'partial') || [];
+              if (partialPayments.length === 0) return null;
+              const activePartial = partialPayments[0];
+
+              if (formData.settlePaymentId === activePartial.id) return null;
+
+              return (
+                <div className="bg-red-500/10 border border-red-500/30 p-3.5 rounded-lg flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+                      Outstanding Balance
+                    </p>
+                    <p className="text-xs text-red-400 mt-0.5 font-mono">Unpaid balance: <span className="font-bold text-red-300">₹{activePartial.balance.toFixed(2)}</span></p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        feePlanId: '',
+                        amountDue: activePartial.balance.toString(),
+                        amountPaid: activePartial.balance.toString(),
+                        paymentType: 'other',
+                        notes: 'Settling balance for previous payment',
+                        settlePaymentId: activePartial.id
+                      });
+                    }}
+                    className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-md transition-colors shadow-md shadow-red-500/20"
+                  >
+                    SETTLE BALANCE
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Fee Plan Select */}
+            <div>
+              <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Fee Plan *</label>
+              <select
+                value={formData.feePlanId}
+                onChange={(e) => handleFeePlanChange(e.target.value)}
+                className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
+                disabled={loadingPlans || !formData.memberId}
+              >
+                <option value="">
+                  {loadingPlans ? 'LOADING PLANS...' : 'SELECT A FEE PLAN'}
+                </option>
+                {feePlans.map((plan) => (
+                  <option key={plan.id} value={plan.id} className="font-mono">
+                    {plan.name} — ₹{plan.monthly_fee} ({plan.duration} month{plan.duration > 1 ? 's' : ''})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target Membership Month */}
+            {formData.paymentType === 'membership' && (
+              <div className="bg-obsidian-900 border border-obsidian-700/80 p-4 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-bold text-industrial-300 uppercase tracking-wider">
+                    Target Membership Month *
+                  </label>
+                  <div className="flex gap-1.5">
+                    {selectedMember?.subscription?.end_date && (() => {
+                      const lastEnd = new Date(selectedMember.subscription.end_date);
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setTargetYearMonth({ year: lastEnd.getFullYear(), month: lastEnd.getMonth() })}
+                          className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-electric-500/10 hover:bg-electric-500/20 text-electric-400 border border-electric-500/30 rounded transition-colors"
+                        >
+                          ⚡ Next Renewal
+                        </button>
+                      );
+                    })()}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
+                      }}
+                      className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-obsidian-700 hover:bg-obsidian-600 text-industrial-300 rounded transition-colors"
                     >
-                      <div className="font-bold text-industrial-50">{member.name}</div>
-                      <div className="text-xs text-obsidian-400 mt-1">{member.phone} {member.subscription ? '' : <span className="text-electric-500 ml-2 font-sans uppercase tracking-widest text-[10px]">• New Member</span>}</div>
+                      📅 Current Month
+                    </button>
+                  </div>
+                </div>
+
+                <select
+                  value={`${targetYearMonth.year}-${targetYearMonth.month}`}
+                  onChange={(e) => {
+                    const [y, m] = e.target.value.split('-').map(Number);
+                    setTargetYearMonth({ year: y, month: m });
+                  }}
+                  className="w-full px-4 py-2 bg-obsidian-800 border border-obsidian-600 rounded-md text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
+                >
+                  {getMonthOptions().map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="p-3 bg-obsidian-800/80 rounded-md border border-obsidian-700/80 font-mono space-y-1">
+                  <div className="flex justify-between items-center text-industrial-300">
+                    <span className="uppercase text-[9px] font-bold tracking-widest text-industrial-400">AUTOMATIC COVERAGE:</span>
+                    <span className="text-[9px] text-electric-400 font-bold uppercase">Starts on Day {actualStartDay}</span>
+                  </div>
+                  <div className="flex justify-between items-center font-bold text-xs pt-1 border-t border-obsidian-700/80">
+                    <span className="text-electric-400">{computedStartDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-obsidian-400">➔</span>
+                    <span className="text-electric-400">{computedEndDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <p className="text-[9px] text-industrial-400 tracking-wider pt-0.5">
+                    * Day {actualStartDay} {isResumedToday ? "(Today's date for resumed member)" : "(Carried over from last renewal)"}. Duration: {durationMonths} month{durationMonths > 1 ? 's' : ''}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Fee Breakdown */}
+            {formData.feePlanId && selectedPlan && selectedMember && (
+              <div className="bg-obsidian-900 border border-obsidian-700/80 p-3.5 rounded-lg">
+                <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-2">Fee Breakdown</p>
+                <div className="space-y-1.5 text-xs font-mono">
+                  <div className="flex justify-between text-industrial-300">
+                    <span>Monthly Fee:</span>
+                    <span className="font-bold text-industrial-50">₹{selectedPlan.monthly_fee}</span>
+                  </div>
+                  {isNewMember && admissionFee > 0 && (
+                    <div className="flex justify-between text-yellow-400">
+                      <span>Admission Fee (New Member):</span>
+                      <span className="font-bold">₹{admissionFee}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-4 text-xs text-obsidian-400 text-center uppercase tracking-widest">[ NO MEMBERS FOUND ]</div>
-                )}
+                  )}
+                  <div className="border-t border-obsidian-700 pt-1.5 mt-1.5 flex justify-between font-bold text-electric-400 text-sm">
+                    <span>TOTAL DUE:</span>
+                    <span>₹{selectedPlan.monthly_fee + admissionFee}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Couple Package Partner Selection */}
+            {!!feePlans.find(plan => plan.id === formData.feePlanId)?.is_couple_package && (
+              <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-lg space-y-3">
+                <label className="block text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+                  Select Partner (Couple Package) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={partnerSearchTerm}
+                    onChange={(e) => {
+                      setPartnerSearchTerm(e.target.value);
+                      setShowPartnerDropdown(true);
+                      if (e.target.value === '') {
+                        handlePartnerChange('');
+                      }
+                    }}
+                    onFocus={() => setShowPartnerDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPartnerDropdown(false), 200)}
+                    placeholder="SEARCH PARTNER BY NAME OR PHONE..."
+                    className="w-full px-4 py-2.5 bg-obsidian-900 border border-purple-500/30 rounded-lg text-industrial-50 focus:border-purple-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
+                    required={!formData.coupleMemberId}
+                  />
+                  {showPartnerDropdown && partnerSearchTerm && (
+                    <div className="absolute z-10 w-full mt-1 bg-obsidian-900 border border-purple-500/30 rounded-lg shadow-xl max-h-60 overflow-y-auto font-mono">
+                      {filteredPartners.length > 0 ? (
+                        filteredPartners.map((partner) => (
+                          <div
+                            key={partner.id}
+                            onClick={() => handlePartnerChange(partner.id)}
+                            className="px-4 py-3 hover:bg-obsidian-800 cursor-pointer border-b border-obsidian-800 last:border-0 transition-colors"
+                          >
+                            <div className="font-bold text-industrial-50">{partner.name}</div>
+                            <div className="text-xs text-purple-400 mt-1">{partner.phone}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-4 text-xs text-obsidian-400 text-center uppercase tracking-widest">[ NO PARTNER FOUND ]</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-purple-400/80 font-mono leading-relaxed uppercase tracking-wide">
+                  Note: Split 50/50 between <span className="text-industrial-50">{selectedMember?.name}</span> and partner.
+                </p>
               </div>
             )}
           </div>
 
-          {/* Member Status Indicator */}
-          {selectedMember && (() => {
-            const sub = selectedMember.subscription;
-            const isExpired = sub && (sub.status === 'expired' || sub.end_date < Date.now());
-
-            return (
-              <div className={`p-4 rounded-lg border ${!sub ? 'bg-yellow-500/10 border-yellow-500/30' :
-                isExpired ? 'bg-red-500/10 border-red-500/30' :
-                  'bg-electric-500/10 border-electric-500/30'
-                }`}>
-                <p className={`text-xs font-bold uppercase tracking-widest ${!sub ? 'text-yellow-500' :
-                  isExpired ? 'text-red-500' :
-                    'text-electric-500'
-                  }`}>
-                  {!sub ? '★ New Member — First Time Payment' :
-                    isExpired ? '⚠ Expired Member — Renewal Required' :
-                      '✓ Existing Member — Renewal (No Admission Fee)'}
-                </p>
-                {sub && (
-                  <p className="text-xs text-industrial-300 mt-2 font-mono">
-                    {isExpired ? 'Last Plan: ' : 'Current Plan: '}
-                    <span className="text-industrial-50">{sub.plan_name}</span>
-                    {isExpired && sub.end_date && (
-                      <span className="ml-2 text-red-400/80">
-                        (EXPIRED ON {new Date(sub.end_date).toLocaleDateString()})
-                      </span>
-                    )}
-                  </p>
+          <div className="space-y-5">
+            {/* Payment Financial Summary Card */}
+            <div className="bg-obsidian-900 border border-obsidian-700/80 p-4 rounded-lg space-y-3">
+              <div className="flex justify-between items-center pb-2 border-b border-obsidian-800">
+                <span className="text-[10px] font-bold text-industrial-300 uppercase tracking-wider">Payment Breakdown</span>
+                {isPartial && (
+                  <span className="text-[9px] font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/30 uppercase tracking-wider">
+                    Partial Payment
+                  </span>
                 )}
               </div>
-            );
-          })()}
-
-          {/* Settle Balance Banner */}
-          {(() => {
-            const partialPayments = selectedMember?.payments?.filter((p: any) => p.status === 'partial') || [];
-            if (partialPayments.length === 0) return null;
-            const activePartial = partialPayments[0];
-
-            if (formData.settlePaymentId === activePartial.id) return null;
-
-            return (
-              <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg flex items-center justify-between">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
-                    Outstanding Balance
-                  </p>
-                  <p className="text-xs text-red-400 mt-1 font-mono">This member has an unpaid balance of <span className="font-bold text-red-300">₹{activePartial.balance.toFixed(2)}</span>.</p>
+                  <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Total Due (₹) *</label>
+                  <input
+                    type="number"
+                    value={formData.amountDue}
+                    onChange={(e) => setFormData({ ...formData, amountDue: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-800 border border-obsidian-600 rounded-md text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-                <button
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      feePlanId: '',
-                      amountDue: activePartial.balance.toString(),
-                      amountPaid: activePartial.balance.toString(),
-                      paymentType: 'other',
-                      notes: 'Settling balance for previous payment',
-                      settlePaymentId: activePartial.id
-                    });
-                  }}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors shadow-lg shadow-red-500/20"
-                >
-                  SETTLE BALANCE
-                </button>
-              </div>
-            );
-          })()}
-
-          {/* Fee Plan Select */}
-          <div>
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Fee Plan *</label>
-            <select
-              value={formData.feePlanId}
-              onChange={(e) => handleFeePlanChange(e.target.value)}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
-              disabled={loadingPlans || !formData.memberId}
-            >
-              <option value="">
-                {loadingPlans ? 'LOADING PLANS...' : 'SELECT A FEE PLAN'}
-              </option>
-              {feePlans.map((plan) => (
-                <option key={plan.id} value={plan.id} className="font-mono">
-                  {plan.name} — ₹{plan.monthly_fee} ({plan.duration} months)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {formData.paymentType === 'membership' && (
-            <div className="bg-obsidian-900 border border-electric-500/30 p-4 rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-[10px] font-bold text-electric-400 uppercase tracking-widest border-l-2 border-electric-500 pl-2">
-                  Target Membership Month *
-                </label>
-                <div className="flex gap-1.5">
-                  {selectedMember?.subscription?.end_date && (() => {
-                    const lastEnd = new Date(selectedMember.subscription.end_date);
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => setTargetYearMonth({ year: lastEnd.getFullYear(), month: lastEnd.getMonth() })}
-                        className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-electric-500/10 hover:bg-electric-500/20 text-electric-400 border border-electric-500/30 rounded transition-colors"
-                      >
-                        ⚡ Next Renewal
-                      </button>
-                    );
-                  })()}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const now = new Date();
-                      setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
-                    }}
-                    className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-obsidian-700 hover:bg-obsidian-600 text-industrial-300 rounded transition-colors"
-                  >
-                    📅 Current Month
-                  </button>
+                <div>
+                  <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Amount Paid (₹) *</label>
+                  <input
+                    type="number"
+                    value={formData.amountPaid}
+                    onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
+                    className="w-full px-3 py-2 bg-obsidian-800 border border-obsidian-600 rounded-md text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                  />
                 </div>
-              </div>
-
-              <select
-                value={`${targetYearMonth.year}-${targetYearMonth.month}`}
-                onChange={(e) => {
-                  const [y, m] = e.target.value.split('-').map(Number);
-                  setTargetYearMonth({ year: y, month: m });
-                }}
-                className="w-full px-4 py-2.5 bg-obsidian-800 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
-              >
-                {getMonthOptions().map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-
-              <div className="p-3 bg-obsidian-800/80 rounded border border-obsidian-700 font-mono space-y-1.5">
-                <div className="flex justify-between items-center text-industrial-300">
-                  <span className="uppercase text-[10px] font-bold tracking-widest text-industrial-400">AUTOMATIC COVERAGE:</span>
-                  <span className="text-[10px] text-electric-400 font-bold uppercase">Starts on Day {actualStartDay}</span>
-                </div>
-                <div className="flex justify-between items-center font-bold text-xs pt-1 border-t border-obsidian-700">
-                  <span className="text-electric-400">{computedStartDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                  <span className="text-obsidian-400">➔</span>
-                  <span className="text-electric-400">{computedEndDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                </div>
-                <p className="text-[10px] text-industrial-400 tracking-wider pt-0.5">
-                  * Day {actualStartDay} {isResumedToday ? "(Today's date for resumed member)" : "(Carried over from last renewal)"}. Duration: {durationMonths} month{durationMonths > 1 ? 's' : ''}.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Fee Breakdown */}
-          {formData.feePlanId && selectedPlan && selectedMember && (
-            <div className="bg-obsidian-900 border border-obsidian-700 p-4 rounded-lg">
-              <p className="text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-3">Fee Breakdown</p>
-              <div className="space-y-2 text-xs font-mono">
-                <div className="flex justify-between text-industrial-300">
-                  <span>Monthly Fee:</span>
-                  <span className="font-bold text-industrial-50">₹{selectedPlan.monthly_fee}</span>
-                </div>
-                {isNewMember && admissionFee > 0 && (
-                  <div className="flex justify-between text-yellow-500">
-                    <span>Admission Fee (New Member):</span>
-                    <span className="font-bold">₹{admissionFee}</span>
+                <div>
+                  <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1">Balance (₹)</label>
+                  <div className={`w-full px-3 py-2 rounded-md border font-bold text-sm font-mono flex items-center h-[38px] ${balance > 0
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : 'bg-green-500/10 border-green-500/30 text-green-400'
+                    }`}>
+                    ₹{balance.toFixed(2)}
                   </div>
-                )}
-                <div className="border-t border-obsidian-700 pt-2 mt-2 flex justify-between font-bold text-electric-500 text-sm">
-                  <span>TOTAL DUE:</span>
-                  <span>₹{selectedPlan.monthly_fee + admissionFee}</span>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Couple Package Partner Selection */}
-          {!!feePlans.find(plan => plan.id === formData.feePlanId)?.is_couple_package && (
-            <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-lg space-y-4">
-              <label className="block text-[10px] font-bold text-purple-400 uppercase tracking-widest border-l-2 border-purple-500 pl-2">
-                Select Partner (Couple Package) *
-              </label>
-              <div className="relative">
+            {/* Payment Mode */}
+            <div>
+              <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Payment Mode *</label>
+              <select
+                value={formData.paymentMode}
+                onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
+                className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
+              >
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+
+            {/* Transaction ID — Conditionally rendered based on settings */}
+            {showTransactionIdSetting && (
+              <div>
+                <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Transaction ID</label>
                 <input
                   type="text"
-                  value={partnerSearchTerm}
-                  onChange={(e) => {
-                    setPartnerSearchTerm(e.target.value);
-                    setShowPartnerDropdown(true);
-                    if (e.target.value === '') {
-                      handlePartnerChange('');
-                    }
-                  }}
-                  onFocus={() => setShowPartnerDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowPartnerDropdown(false), 200)}
-                  placeholder="SEARCH PARTNER BY NAME OR PHONE..."
-                  className="w-full px-4 py-2.5 bg-obsidian-900 border border-purple-500/30 rounded text-industrial-50 focus:border-purple-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
-                  required={!formData.coupleMemberId}
+                  value={formData.transactionId}
+                  onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
+                  placeholder="TRANSACTION ID (OPTIONAL)"
                 />
-                {showPartnerDropdown && partnerSearchTerm && (
-                  <div className="absolute z-10 w-full mt-1 bg-obsidian-900 border border-purple-500/30 rounded-lg shadow-xl max-h-60 overflow-y-auto font-mono">
-                    {filteredPartners.length > 0 ? (
-                      filteredPartners.map((partner) => (
-                        <div
-                          key={partner.id}
-                          onClick={() => handlePartnerChange(partner.id)}
-                          className="px-4 py-3 hover:bg-obsidian-800 cursor-pointer border-b border-obsidian-800 last:border-0 transition-colors"
-                        >
-                          <div className="font-bold text-industrial-50">{partner.name}</div>
-                          <div className="text-xs text-purple-400 mt-1">{partner.phone}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-4 text-xs text-obsidian-400 text-center uppercase tracking-widest">[ NO PARTNER FOUND ]</div>
-                    )}
-                  </div>
-                )}
               </div>
-              <p className="text-[10px] text-purple-400/80 font-mono leading-relaxed uppercase tracking-widest">
-                Note: The payment amount and due balance will be automatically split exactly in half (50%) between <span className="text-industrial-50">{selectedMember?.name}</span> and the chosen partner. Two separate payment records and subscriptions will be generated.
-              </p>
-            </div>
-          )}
+            )}
 
-          </div>
-          <div className="space-y-6">
-
-          {/* Total Due + Amount Paid + Balance — 3-column row */}
-          {/* Total Due + Amount Paid + Balance — 3-column row */}
-          <div className="grid grid-cols-3 gap-3 items-end">
-            <div>
-              <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Total Due (₹) *</label>
-              <input
-                type="number"
-                value={formData.amountDue}
-                onChange={(e) => setFormData({ ...formData, amountDue: e.target.value })}
-                className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Amount Paid (₹) *</label>
-              <input
-                type="number"
-                value={formData.amountPaid}
-                onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
-                className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Balance (₹)</label>
-              <div className={`w-full px-4 py-2.5 rounded border font-bold text-sm font-mono flex items-center h-[42px] ${balance > 0
-                ? 'bg-red-500/10 border-red-500/30 text-red-500'
-                : 'bg-electric-500/10 border-electric-500/30 text-electric-500'
-                }`}>
-                ₹{balance.toFixed(2)}
+            {/* Receipt No & Notes */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Receipt No</label>
+                <input
+                  type="text"
+                  value={formData.receiptNo}
+                  onChange={(e) => setFormData({ ...formData, receiptNo: e.target.value })}
+                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
+                  placeholder="RECEIPT NO (OPTIONAL)"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-industrial-300 uppercase tracking-wider mb-1.5">Notes</label>
+                <input
+                  type="text"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-obsidian-900 border border-obsidian-600 rounded-lg text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
+                  placeholder="ADDITIONAL NOTES"
+                />
               </div>
             </div>
-          </div>
-
-          {/* Partial payment warning */}
-          {isPartial && (
-            <div className="flex items-center gap-2 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg text-xs text-orange-500 font-mono uppercase tracking-widest">
-              <span className="font-bold">PARTIAL PAYMENT</span>
-              <span>— ₹{balance.toFixed(2)} will remain outstanding</span>
-            </div>
-          )}
-
-          {/* Payment Mode */}
-          <div>
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 border-l-2 border-electric-500 pl-2">Payment Mode *</label>
-            <select
-              value={formData.paymentMode}
-              onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
-            >
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="upi">UPI</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cheque">Cheque</option>
-            </select>
-          </div>
-
-          {/* Transaction ID */}
-          <div>
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Transaction ID</label>
-            <input
-              type="text"
-              value={formData.transactionId}
-              onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
-              placeholder="TRANSACTION ID (OPTIONAL)"
-            />
-          </div>
-
-          {/* Receipt No */}
-          <div>
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Receipt No</label>
-            <input
-              type="text"
-              value={formData.receiptNo}
-              onChange={(e) => setFormData({ ...formData, receiptNo: e.target.value })}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide"
-              placeholder="RECEIPT NUMBER (OPTIONAL)"
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-[10px] font-bold text-industrial-400 uppercase tracking-widest mb-1 pl-2">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all placeholder:text-obsidian-500 uppercase tracking-wide resize-none"
-              placeholder="ADDITIONAL NOTES"
-              rows={2}
-            />
-          </div>
           </div>
         </div>
 
@@ -750,14 +772,14 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           <button
             onClick={handleClose}
             disabled={loading}
-            className="px-6 py-2 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded text-xs font-bold uppercase tracking-wider hover:text-industrial-50 transition-colors focus:ring-2 focus:ring-obsidian-500 disabled:opacity-50"
+            className="px-6 py-2.5 bg-obsidian-700 text-industrial-300 border border-obsidian-600 rounded-lg text-xs font-bold uppercase tracking-wider hover:text-industrial-50 transition-colors disabled:opacity-50"
           >
             CANCEL
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className={`px-6 py-2 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-lg ${isPartial ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20' : 'bg-electric-500 hover:bg-electric-600 shadow-electric-500/20'
+            className={`px-6 py-2.5 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-lg ${isPartial ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20' : 'bg-electric-500 hover:bg-electric-600 shadow-electric-500/20'
               }`}
           >
             {loading ? 'RECORDING...' : isPartial ? 'RECORD PARTIAL PAYMENT' : 'RECORD PAYMENT'}

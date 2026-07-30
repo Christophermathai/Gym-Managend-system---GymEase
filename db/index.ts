@@ -321,6 +321,11 @@ function createTables(db: any) {
       db.exec(`ALTER TABLE gym_settings ADD COLUMN available_credits INTEGER DEFAULT 0`);
       console.log('Migration: available_credits column added to gym_settings');
     }
+    const hasShowTransactionId = settingsCols.some(col => col.name === 'show_transaction_id');
+    if (!hasShowTransactionId) {
+      db.exec(`ALTER TABLE gym_settings ADD COLUMN show_transaction_id BOOLEAN DEFAULT 1`);
+      console.log('Migration: show_transaction_id column added to gym_settings');
+    }
   } catch (error) {
     console.error('Migration error (gym_settings col):', error);
   }

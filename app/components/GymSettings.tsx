@@ -45,6 +45,7 @@ interface GymSettingsData {
   whatsapp_mode: 'manual' | 'automated';
   api_key: string;
   available_credits: number;
+  show_transaction_id?: number;
 }
 
 export function GymSettings() {
@@ -64,6 +65,7 @@ export function GymSettings() {
     whatsapp_mode: 'manual',
     api_key: '',
     available_credits: 0,
+    show_transaction_id: 1,
   });
 
   useEffect(() => {
@@ -263,6 +265,23 @@ export function GymSettings() {
                 <textarea name="gym_address" value={settings.gym_address || ''} onChange={handleChange} rows={3}
                   className="w-full bg-obsidian-800 border text-white border-obsidian-600 rounded p-3 text-sm focus:outline-none focus:border-electric-500 transition-colors"
                   placeholder="123 Fitness Street..." />
+              </div>
+
+              <div className="pt-4 border-t border-obsidian-700/50 mt-4 space-y-3">
+                <label className="block text-xs font-bold text-industrial-400 uppercase tracking-widest">Payment Modal Preferences</label>
+                <label className="flex items-start gap-3 cursor-pointer p-3 bg-obsidian-800 border border-obsidian-600 rounded-lg hover:border-obsidian-500 transition-all">
+                  <input
+                    type="checkbox"
+                    name="show_transaction_id"
+                    checked={settings.show_transaction_id !== 0}
+                    onChange={(e) => setSettings(prev => ({ ...prev, show_transaction_id: e.target.checked ? 1 : 0 }))}
+                    className="h-4 w-4 mt-0.5 text-electric-500 rounded border-obsidian-600 bg-obsidian-900 focus:ring-electric-500"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-industrial-50 block uppercase tracking-wider">Show Transaction ID field in Record Payment modal</span>
+                    <span className="text-[10px] text-industrial-400 block font-mono mt-0.5">When enabled, staff can enter a Transaction ID during fee payment. Disable to simplify the modal.</span>
+                  </div>
+                </label>
               </div>
 
               <div className="pt-4 border-t border-obsidian-700/50 mt-6">

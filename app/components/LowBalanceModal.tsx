@@ -12,7 +12,6 @@ interface LowBalanceModalProps {
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_MESSAGE_BACKEND_URL || 'https://gymease-backend.vercel.app';
-const RECHARGE_HMAC_SECRET = process.env.NEXT_PUBLIC_RECHARGE_HMAC_SECRET || '';
 
 export function LowBalanceModal({ gymId, apiKey, onClose, onBalanceSynced }: LowBalanceModalProps) {
   const { token } = useAuth();

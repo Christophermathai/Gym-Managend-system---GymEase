@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
     const finalPaymentDate = paymentDate || payment_date;
     const finalUseLastMembershipEndDate = body.useLastMembershipEndDate ?? body.use_last_membership_end_date;
     const useLastMembershipEndDate = finalUseLastMembershipEndDate === undefined ? true : finalUseLastMembershipEndDate;
+    const explicitStartDate = body.startDate ?? body.start_date;
 
     // Determine if it's a couple payment first to calculate amounts
     let isCouplePayment = false;
@@ -126,43 +127,10 @@ export async function POST(request: NextRequest) {
       let subscriptionId = bodySubscriptionId;
 
       if (finalPaymentType === 'membership' && feePlan) {
-        // Check if this specific member already has a truly active subscription
-        const currentTime = Date.now();
-        const existingSubscription = await getAsync(
-          db,
-          'SELECT id, end_date FROM subscriptions WHERE member_id = ? AND status = ? AND end_date >= ? ORDER BY end_date DESC LIMIT 1',
-          [currentMemberId, 'active', currentTime]
-        );
-
-        if (existingSubscription) {
-          // Extend existing subscription
-          const currentEndDate = new Date(existingSubscription.end_date);
-          const newEndDate = new Date(currentEndDate);
-          newEndDate.setMonth(newEndDate.getMonth() + feePlan.duration);
-
-          await runAsync(
-            db,
-            'UPDATE subscriptions SET end_date = ? WHERE id = ?',
-            [newEndDate.getTime(), existingSubscription.id]
-          );
-
-          subscriptionId = existingSubscription.id;
-        } else {
-          // Create new subscription
+        if (explicitStartDate !== undefined && explicitStartDate !== null) {
+          // Use explicit start date provided by the frontend Month Selector
           subscriptionId = generateId('sub_');
-          let startDate: any = finalPaymentDate;
-
-          if (useLastMembershipEndDate) {
-            const lastSubscription = await getAsync(
-              db,
-              'SELECT id, end_date FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC LIMIT 1',
-              [currentMemberId]
-            );
-            if (lastSubscription?.end_date) {
-              startDate = lastSubscription.end_date;
-            }
-          }
-
+          const startDate = Number(explicitStartDate);
           const endDate = new Date(startDate);
           endDate.setMonth(endDate.getMonth() + feePlan.duration);
 
@@ -172,6 +140,54 @@ export async function POST(request: NextRequest) {
              VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
             [subscriptionId, currentMemberId, body.feePlanId, startDate, endDate.getTime(), 'active', userId]
           );
+        } else {
+          // Fallback check if member already has an active subscription
+          const currentTime = Date.now();
+          const existingSubscription = await getAsync(
+            db,
+            'SELECT id, end_date FROM subscriptions WHERE member_id = ? AND status = ? AND end_date >= ? ORDER BY end_date DESC LIMIT 1',
+            [currentMemberId, 'active', currentTime]
+          );
+
+          if (existingSubscription) {
+            // Extend existing subscription
+            const currentEndDate = new Date(existingSubscription.end_date);
+            const newEndDate = new Date(currentEndDate);
+            newEndDate.setMonth(newEndDate.getMonth() + feePlan.duration);
+
+            await runAsync(
+              db,
+              'UPDATE subscriptions SET end_date = ? WHERE id = ?',
+              [newEndDate.getTime(), existingSubscription.id]
+            );
+
+            subscriptionId = existingSubscription.id;
+          } else {
+            // Create new subscription
+            subscriptionId = generateId('sub_');
+            let startDate: any = finalPaymentDate;
+
+            if (useLastMembershipEndDate) {
+              const lastSubscription = await getAsync(
+                db,
+                'SELECT id, end_date FROM subscriptions WHERE member_id = ? ORDER BY end_date DESC LIMIT 1',
+                [currentMemberId]
+              );
+              if (lastSubscription?.end_date) {
+                startDate = lastSubscription.end_date;
+              }
+            }
+
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + feePlan.duration);
+
+            await runAsync(
+              db,
+              `INSERT INTO subscriptions (id, member_id, fee_plan_id, start_date, end_date, status, created_by, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+              [subscriptionId, currentMemberId, body.feePlanId, startDate, endDate.getTime(), 'active', userId]
+            );
+          }
         }
       }
 

@@ -33,6 +33,10 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const [members, setMembers] = useState<Member[]>([]);
   const [feePlans, setFeePlans] = useState<FeePlan[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [targetYearMonth, setTargetYearMonth] = useState<{ year: number; month: number }>({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+  });
   const [formData, setFormData] = useState({
     memberId: '',
     subscriptionId: '',
@@ -47,7 +51,6 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     notes: '',
     coupleMemberId: '',
     settlePaymentId: '',
-    useLastMembershipEndDate: true,
   });
   const [loading, setLoading] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -56,6 +59,11 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [partnerSearchTerm, setPartnerSearchTerm] = useState('');
   const [showPartnerDropdown, setShowPartnerDropdown] = useState(false);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -125,6 +133,23 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
     setSelectedMember(member || null);
     setMemberSearchTerm(member ? `${member.name} (${member.phone})` : '');
     setShowMemberDropdown(false);
+
+    // Smart Month pre-selection
+    const now = new Date();
+    if (member?.subscription?.end_date) {
+      const endDate = new Date(member.subscription.end_date);
+      const diffDays = Math.floor((now.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 35) {
+        // If member missed payments for > 35 days, default to current month
+        setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
+      } else {
+        // Default to the month of the last subscription end date
+        setTargetYearMonth({ year: endDate.getFullYear(), month: endDate.getMonth() });
+      }
+    } else {
+      setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
+    }
+
     setFormData({
       ...formData,
       memberId,
@@ -132,7 +157,6 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
       amountDue: '',
       amountPaid: '',
       settlePaymentId: '',
-      useLastMembershipEndDate: member ? !!member.subscription : true,
     });
   };
 
@@ -156,6 +180,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   };
 
   const resetForm = () => {
+    const now = new Date();
     setFormData({
       memberId: '',
       subscriptionId: '',
@@ -170,13 +195,91 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
       notes: '',
       coupleMemberId: '',
       settlePaymentId: '',
-      useLastMembershipEndDate: true,
     });
+    setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
     setSelectedMember(null);
     setMemberSearchTerm('');
     setShowMemberDropdown(false);
     setPartnerSearchTerm('');
     setShowPartnerDropdown(false);
+  };
+
+  // Helper calculations for automatic start day and date ranges
+  const getMemberStartDay = (
+    member: Member | null,
+    targetYear: number,
+    targetMonth: number
+  ): { startDay: number; isResumedToday: boolean } => {
+    const now = new Date();
+    const todayDay = now.getDate();
+
+    if (!member || !member.subscription?.end_date) {
+      return { startDay: todayDay, isResumedToday: true };
+    }
+
+    const lastEndDate = new Date(member.subscription.end_date);
+    const diffDays = Math.floor((now.getTime() - lastEndDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Check if the selected target month & year is the next consecutive month after last subscription
+    const expectedNextMonth = (lastEndDate.getMonth() + 1) % 12;
+    const expectedNextYear = lastEndDate.getMonth() === 11 ? lastEndDate.getFullYear() + 1 : lastEndDate.getFullYear();
+
+    const isSelectedMonthLastExpiryMonth = (targetYear === lastEndDate.getFullYear() && targetMonth === lastEndDate.getMonth());
+    const isSelectedMonthNextMonth = (targetYear === expectedNextYear && targetMonth === expectedNextMonth);
+
+    // If the member has been absent / missed payments for > 35 days AND staff is selecting Current Month or later:
+    if (diffDays > 35 && (targetYear > now.getFullYear() || (targetYear === now.getFullYear() && targetMonth >= now.getMonth()))) {
+      return { startDay: todayDay, isResumedToday: true };
+    }
+
+    // If selecting next renewal month or continuous renewal:
+    if (isSelectedMonthLastExpiryMonth || isSelectedMonthNextMonth || diffDays <= 35) {
+      return { startDay: lastEndDate.getDate(), isResumedToday: false };
+    }
+
+    // Default fallback:
+    return { startDay: todayDay, isResumedToday: true };
+  };
+
+  const { startDay, isResumedToday } = getMemberStartDay(selectedMember, targetYearMonth.year, targetYearMonth.month);
+  const selectedPlan = feePlans.find(p => p.id === formData.feePlanId);
+  const durationMonths = selectedPlan ? selectedPlan.duration : 1;
+
+  const daysInSelectedMonth = new Date(targetYearMonth.year, targetYearMonth.month + 1, 0).getDate();
+  const actualStartDay = Math.min(startDay, daysInSelectedMonth);
+  const computedStartDate = new Date(targetYearMonth.year, targetYearMonth.month, actualStartDay, 12, 0, 0);
+  const computedEndDate = new Date(computedStartDate);
+  computedEndDate.setMonth(computedEndDate.getMonth() + durationMonths);
+
+  const getMonthOptions = () => {
+    const options = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    for (let offset = -6; offset <= 6; offset++) {
+      const d = new Date(currentYear, currentMonth + offset, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+
+      let tag = '';
+      if (offset === 0) tag = ' (Current Month)';
+
+      if (selectedMember?.subscription?.end_date) {
+        const lastEnd = new Date(selectedMember.subscription.end_date);
+        if (lastEnd.getFullYear() === y && lastEnd.getMonth() === m) {
+          tag = ' ★ (Next Renewal Month)';
+        }
+      }
+
+      options.push({
+        year: y,
+        month: m,
+        value: `${y}-${m}`,
+        label: `${monthNames[m]} ${y}${tag}`,
+      });
+    }
+    return options;
   };
 
   const handleSubmit = async () => {
@@ -219,7 +322,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           notes: formData.notes,
           coupleMemberId: formData.coupleMemberId,
           settlePaymentId: formData.settlePaymentId,
-          useLastMembershipEndDate: formData.useLastMembershipEndDate,
+          startDate: computedStartDate.getTime(),
         }),
       });
 
@@ -251,7 +354,6 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
 
   if (!isOpen) return null;
 
-  const selectedPlan = feePlans.find(p => p.id === formData.feePlanId);
   const isNewMember = selectedMember && !selectedMember.subscription;
   const admissionFee = isNewMember && selectedPlan ? (selectedPlan.admission_fee || 0) : 0;
 
@@ -406,21 +508,66 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
           </div>
 
           {formData.paymentType === 'membership' && (
-            <div className="bg-obsidian-900 border border-obsidian-700 p-4 rounded-lg space-y-2">
-              <label className="flex items-center gap-3 text-sm font-bold text-industrial-50">
-                <input
-                  type="checkbox"
-                  checked={formData.useLastMembershipEndDate}
-                  onChange={(e) => setFormData({ ...formData, useLastMembershipEndDate: e.target.checked })}
-                  className="h-4 w-4 text-electric-500 rounded border-obsidian-600 bg-obsidian-900 focus:ring-electric-500"
-                />
-                <span>Start new membership from last membership end date</span>
-              </label>
-              <p className="text-[10px] text-industrial-400 font-mono uppercase tracking-widest">
-                {formData.useLastMembershipEndDate
-                  ? 'If this member had a previous subscription, the new plan will start from the last membership end date instead of today.'
-                  : 'New membership will start from the payment date as usual.'}
-              </p>
+            <div className="bg-obsidian-900 border border-electric-500/30 p-4 rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] font-bold text-electric-400 uppercase tracking-widest border-l-2 border-electric-500 pl-2">
+                  Target Membership Month *
+                </label>
+                <div className="flex gap-1.5">
+                  {selectedMember?.subscription?.end_date && (() => {
+                    const lastEnd = new Date(selectedMember.subscription.end_date);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setTargetYearMonth({ year: lastEnd.getFullYear(), month: lastEnd.getMonth() })}
+                        className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-electric-500/10 hover:bg-electric-500/20 text-electric-400 border border-electric-500/30 rounded transition-colors"
+                      >
+                        ⚡ Next Renewal
+                      </button>
+                    );
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      setTargetYearMonth({ year: now.getFullYear(), month: now.getMonth() });
+                    }}
+                    className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-obsidian-700 hover:bg-obsidian-600 text-industrial-300 rounded transition-colors"
+                  >
+                    📅 Current Month
+                  </button>
+                </div>
+              </div>
+
+              <select
+                value={`${targetYearMonth.year}-${targetYearMonth.month}`}
+                onChange={(e) => {
+                  const [y, m] = e.target.value.split('-').map(Number);
+                  setTargetYearMonth({ year: y, month: m });
+                }}
+                className="w-full px-4 py-2.5 bg-obsidian-800 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none font-mono text-sm transition-all"
+              >
+                {getMonthOptions().map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+
+              <div className="p-3 bg-obsidian-800/80 rounded border border-obsidian-700 font-mono space-y-1.5">
+                <div className="flex justify-between items-center text-industrial-300">
+                  <span className="uppercase text-[10px] font-bold tracking-widest text-industrial-400">AUTOMATIC COVERAGE:</span>
+                  <span className="text-[10px] text-electric-400 font-bold uppercase">Starts on Day {actualStartDay}</span>
+                </div>
+                <div className="flex justify-between items-center font-bold text-xs pt-1 border-t border-obsidian-700">
+                  <span className="text-electric-400">{computedStartDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <span className="text-obsidian-400">➔</span>
+                  <span className="text-electric-400">{computedEndDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                </div>
+                <p className="text-[10px] text-industrial-400 tracking-wider pt-0.5">
+                  * Day {actualStartDay} {isResumedToday ? "(Today's date for resumed member)" : "(Carried over from last renewal)"}. Duration: {durationMonths} month{durationMonths > 1 ? 's' : ''}.
+                </p>
+              </div>
             </div>
           )}
 

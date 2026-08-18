@@ -25,23 +25,36 @@ export function LeadManagement() {
   const [status, setStatus] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState<Partial<Lead>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const itemsPerPage = 100;
 
   useEffect(() => {
     fetchLeads();
-  }, [status]);
+  }, [status, currentPage]);
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const url = status ? `/api/leads?status=${status}` : '/api/leads';
+      const offset = (currentPage - 1) * itemsPerPage;
+      const url = status 
+        ? `/api/leads?status=${status}&limit=${itemsPerPage}&offset=${offset}` 
+        : `/api/leads?limit=${itemsPerPage}&offset=${offset}`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        setLeads(Array.isArray(data) ? data : (data.leads || []));
+        if (Array.isArray(data)) {
+          setLeads(data);
+          setTotalLeads(data.length);
+        } else {
+          setLeads(data.leads || []);
+          setTotalLeads(data.total || 0);
+        }
       } else {
         setLeads([]);
+        setTotalLeads(0);
       }
     } catch (error) {
       toast.error('Failed to fetch leads');
@@ -132,7 +145,10 @@ export function LeadManagement() {
         <label className="block text-xs font-bold text-industrial-400 uppercase tracking-wider mb-1.5 border-l-2 border-electric-500 pl-2">Status Filter</label>
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setCurrentPage(1);
+          }}
           className="w-full px-3 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
         >
           <option value="">All Status</option>
@@ -201,6 +217,29 @@ export function LeadManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalLeads > itemsPerPage && (
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-obsidian-700 font-mono text-xs">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-300 hover:text-industrial-50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            ← PREVIOUS
+          </button>
+          <span className="text-industrial-400">
+            PAGE {currentPage} OF {Math.ceil(totalLeads / itemsPerPage)} ({totalLeads} TOTAL LEAD{totalLeads > 1 ? 'S' : ''})
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalLeads / itemsPerPage)))}
+            disabled={currentPage >= Math.ceil(totalLeads / itemsPerPage)}
+            className="px-3 py-1.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-300 hover:text-industrial-50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            NEXT →
+          </button>
+        </div>
+      )}
 
       {/* Add Modal */}
       {showAddModal && (

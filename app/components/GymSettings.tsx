@@ -67,6 +67,20 @@ export function GymSettings() {
     available_credits: 0,
     show_transaction_id: 1,
   });
+  const [fontSize, setFontSize] = useState<number>(14);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('gym_ease_font_size');
+    if (saved) {
+      setFontSize(parseInt(saved));
+    }
+  }, []);
+
+  const handleFontSizeChange = (size: number) => {
+    setFontSize(size);
+    localStorage.setItem('gym_ease_font_size', String(size));
+    document.documentElement.style.setProperty('--base-font-size', `${size}px`);
+  };
 
   useEffect(() => {
     if (token) fetchSettings();
@@ -300,6 +314,29 @@ export function GymSettings() {
                     </>
                   )}
                 </button>
+              </div>
+
+              {/* Display & Accessibility */}
+              <div className="pt-4 border-t border-obsidian-700/50 mt-6 space-y-4">
+                <label className="block text-xs font-bold text-industrial-400 uppercase tracking-widest">Display & Accessibility</label>
+                <div className="p-4 bg-obsidian-900 border border-obsidian-700 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-industrial-50 block uppercase tracking-wider">Base Font Size</span>
+                    <span className="text-xs font-mono font-bold text-electric-400 bg-electric-500/10 px-2 py-0.5 rounded border border-electric-500/20">{fontSize}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="16"
+                    step="1"
+                    value={fontSize}
+                    onChange={(e) => handleFontSizeChange(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-obsidian-800 rounded-lg appearance-none cursor-pointer accent-electric-500"
+                  />
+                  <p className="text-[10px] text-industrial-500 leading-normal uppercase">
+                    Adjust text size to improve readability on smaller viewports. (Standard is 14px, adjustable between 12px and 16px).
+                  </p>
+                </div>
               </div>
             </div>
           </div>

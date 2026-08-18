@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase, runAsync, allAsync } from '@/db';
+import { getDatabase, runAsync, allAsync, getAsync } from '@/db';
 import { generateId } from '@/app/lib/utils';
 import { getAuthUserId } from '@/app/lib/api-utils';
 
@@ -13,21 +13,27 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
     let query = 'SELECT * FROM leads';
+    let countQuery = 'SELECT COUNT(*) as count FROM leads';
     const params: any[] = [];
 
     if (status) {
       query += ' WHERE status = ?';
+      countQuery += ' WHERE status = ?';
       params.push(status);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
-    params.push(limit);
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    const queryParams = [...params, limit, offset];
 
-    const leads = await allAsync(db, query, params);
-    return NextResponse.json(leads);
+    const leads = await allAsync(db, query, queryParams);
+    const countResult = await getAsync(db, countQuery, params);
+    const total = countResult ? countResult.count : 0;
+
+    return NextResponse.json({ leads, total });
   } catch (error) {
     console.error('Error fetching leads:', error);
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });

@@ -94,7 +94,7 @@ export function RecordPaymentModal({ isOpen, onClose, onSuccess }: RecordPayment
   const fetchMembers = async () => {
     try {
       setLoadingMembers(true);
-      const response = await fetch('/api/members?limit=200', {
+      const response = await fetch('/api/members?limit=1000', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {

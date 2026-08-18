@@ -34,6 +34,13 @@ export function App() {
     checkSetup();
   }, []);
 
+  useEffect(() => {
+    const savedSize = localStorage.getItem('gym_ease_font_size');
+    if (savedSize) {
+      document.documentElement.style.setProperty('--base-font-size', `${savedSize}px`);
+    }
+  }, []);
+
   if (loading || needsSetup === null) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-obsidian-900">

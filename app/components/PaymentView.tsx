@@ -44,9 +44,16 @@ export function PaymentView() {
   const [editingNoteValue, setEditingNoteValue] = useState('');
   const [savingNote, setSavingNote] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+
   useEffect(() => {
     if (token) fetchPayments();
   }, [token]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, filterMode, filterStatus, sortBy, fromDate, toDate]);
 
   const fetchPayments = async () => {
     try {
@@ -102,6 +109,11 @@ export function PaymentView() {
 
     return list;
   }, [payments, searchTerm, filterType, filterMode, filterStatus, sortBy, fromDate, toDate]);
+
+  const paginatedPayments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredPayments.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredPayments, currentPage, itemsPerPage]);
 
   const totalAmount = filteredPayments.reduce((s, p) => s + p.amount, 0);
   const totalOutstanding = filteredPayments.reduce((s, p) => s + (p.balance || 0), 0);
@@ -333,7 +345,7 @@ export function PaymentView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-obsidian-700">
-                {filteredPayments.map((payment) => (
+                {paginatedPayments.map((payment) => (
                   <tr key={payment.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-4 py-3 text-sm text-industrial-50 font-bold pl-6">
                       {payment.member_name || `MEMBER #${payment.member_id}`}
@@ -423,8 +435,31 @@ export function PaymentView() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-obsidian-900/50 border-t border-obsidian-700 text-xs font-mono text-industrial-500 uppercase tracking-widest">
-            {filteredPayments.length} RECORD{filteredPayments.length !== 1 ? 'S' : ''}
+          <div className="px-6 py-3 bg-obsidian-900/50 border-t border-obsidian-700 flex justify-between items-center text-xs font-mono text-industrial-500 uppercase tracking-widest">
+            <span>{filteredPayments.length} RECORD{filteredPayments.length !== 1 ? 'S' : ''}</span>
+            {filteredPayments.length > itemsPerPage && (
+              <div className="flex gap-4 items-center">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 bg-obsidian-950 border border-obsidian-700 text-industrial-300 hover:text-industrial-50 disabled:opacity-30 disabled:pointer-events-none rounded transition-colors"
+                >
+                  ← PREV
+                </button>
+                <span className="text-industrial-400">
+                  PAGE {currentPage} OF {Math.ceil(filteredPayments.length / itemsPerPage)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredPayments.length / itemsPerPage)))}
+                  disabled={currentPage >= Math.ceil(filteredPayments.length / itemsPerPage)}
+                  className="px-2.5 py-1 bg-obsidian-950 border border-obsidian-700 text-industrial-300 hover:text-industrial-50 disabled:opacity-30 disabled:pointer-events-none rounded transition-colors"
+                >
+                  NEXT →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (

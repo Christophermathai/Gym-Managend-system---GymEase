@@ -17,23 +17,31 @@ export async function GET(request: NextRequest) {
 
     const db = await getDatabase();
 
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
     let query = 'SELECT * FROM expenses';
+    let countQuery = 'SELECT COUNT(*) as count FROM expenses';
+    let sumQuery = 'SELECT SUM(amount) as totalAmount FROM expenses';
     const params: any[] = [];
 
     if (category) {
       query += ' WHERE category = ?';
+      countQuery += ' WHERE category = ?';
+      sumQuery += ' WHERE category = ?';
       params.push(category);
     }
 
-    query += ' ORDER BY expense_date DESC LIMIT ?';
-    params.push(limit);
+    query += ' ORDER BY expense_date DESC LIMIT ? OFFSET ?';
+    const queryParams = [...params, limit, offset];
 
-    const expenses = await allAsync(db, query, params);
-    return NextResponse.json(expenses);
+    const expenses = await allAsync(db, query, queryParams);
+    const countResult = await getAsync(db, countQuery, params);
+    const sumResult = await getAsync(db, sumQuery, params);
+    const total = countResult ? countResult.count : 0;
+    const totalAmount = sumResult ? (sumResult.totalAmount || 0) : 0;
+
+    return NextResponse.json({ expenses, total, totalAmount });
   } catch (error) {
     console.error('Error fetching expenses:', error);
     return NextResponse.json({ error: 'Failed to fetch expenses' }, { status: 500 });

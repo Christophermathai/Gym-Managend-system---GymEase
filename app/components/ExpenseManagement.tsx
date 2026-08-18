@@ -28,10 +28,14 @@ export function ExpenseManagement() {
   const [category, setCategory] = useState<string>('');
   const [formData, setFormData] = useState<Partial<Expense>>({});
   const [trainers, setTrainers] = useState<{ id: string; name: string }[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [apiTotalAmount, setApiTotalAmount] = useState(0);
+  const itemsPerPage = 50;
 
   useEffect(() => {
     fetchExpenses();
-  }, [category]);
+  }, [category, currentPage]);
 
   useEffect(() => {
     const fetchTrainers = async () => {
@@ -53,15 +57,28 @@ export function ExpenseManagement() {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const url = category ? `/api/expenses?category=${category}` : '/api/expenses';
+      const offset = (currentPage - 1) * itemsPerPage;
+      const url = category 
+        ? `/api/expenses?category=${category}&limit=${itemsPerPage}&offset=${offset}` 
+        : `/api/expenses?limit=${itemsPerPage}&offset=${offset}`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        setExpenses(Array.isArray(data) ? data : (data.expenses || []));
+        if (Array.isArray(data)) {
+          setExpenses(data);
+          setTotalExpenses(data.length);
+          setApiTotalAmount(data.reduce((sum, e) => sum + e.amount, 0));
+        } else {
+          setExpenses(data.expenses || []);
+          setTotalExpenses(data.total || 0);
+          setApiTotalAmount(data.totalAmount || 0);
+        }
       } else {
         setExpenses([]);
+        setTotalExpenses(0);
+        setApiTotalAmount(0);
       }
     } catch (error) {
       toast.error('Failed to fetch expenses');
@@ -167,7 +184,7 @@ export function ExpenseManagement() {
     </div>
   );
 
-  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalAmount = apiTotalAmount;
 
   return (
     <div className="p-6 bg-obsidian-800 border border-obsidian-600 rounded-lg shadow-lg">
@@ -191,7 +208,10 @@ export function ExpenseManagement() {
           <label className="block text-xs font-bold text-industrial-400 uppercase tracking-wider mb-1.5 border-l-2 border-electric-500 pl-2">Category Filter</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full px-3 py-2.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-50 focus:border-electric-500 focus:outline-none"
           >
             <option value="">All Categories</option>
@@ -265,6 +285,29 @@ export function ExpenseManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalExpenses > itemsPerPage && (
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-obsidian-700 font-mono text-xs">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-300 hover:text-industrial-50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            ← PREVIOUS
+          </button>
+          <span className="text-industrial-400">
+            PAGE {currentPage} OF {Math.ceil(totalExpenses / itemsPerPage)} ({totalExpenses} TOTAL RECORD{totalExpenses > 1 ? 'S' : ''})
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalExpenses / itemsPerPage)))}
+            disabled={currentPage >= Math.ceil(totalExpenses / itemsPerPage)}
+            className="px-3 py-1.5 bg-obsidian-900 border border-obsidian-600 rounded text-industrial-300 hover:text-industrial-50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            NEXT →
+          </button>
+        </div>
+      )}
 
       {/* Add Modal */}
       {showAddModal && (

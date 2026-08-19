@@ -47,6 +47,8 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      GYP_MSVS_VERSION: 2022
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

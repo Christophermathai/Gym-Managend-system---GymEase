@@ -64,8 +64,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies
+      - name: Upgrade node-gyp & Install Dependencies
         run: |
+          npm install -g node-gyp@latest
+          $npm_root = (npm root -g).Trim()
+          npm config set node_gyp "$npm_root\node-gyp\bin\node-gyp.js"
           npm config set msvs_version 2022
           npm install
 

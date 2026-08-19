@@ -63,7 +63,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm config set msvs_version 2022
+          npm install
 
       - name: Rebuild Native Dependencies (better-sqlite3)
         run: npx electron-builder install-app-deps
